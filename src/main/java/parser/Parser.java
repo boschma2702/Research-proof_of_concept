@@ -31,7 +31,7 @@ public class Parser {
     private final static Pattern FIELD_DECLARATION = Pattern.compile("[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*\\s+[a-zA-Z][a-zA-Z0-9]*\\s*(;|=)");
 
 
-    
+
     private final static Pattern EXTENDS_DEFINITION = Pattern.compile("extends\\s+[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*");
     private final static Pattern IMPLEMENTS_DEFINITION = Pattern.compile("implements\\s+[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*(,\\s*[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*)*");
 
