@@ -28,15 +28,19 @@ public class Parser {
     private final static Pattern PACKAGE_DEFINITION = Pattern.compile("package\\s+[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*;");
     private final static Pattern IMPORT_DEFINITION = Pattern.compile("import\\s+[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*;");
 
+    private final static Pattern FIELD_DECLARATION = Pattern.compile("[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*\\s+[a-zA-Z][a-zA-Z0-9]*\\s*(;|=)");
+
+
+    
     private final static Pattern EXTENDS_DEFINITION = Pattern.compile("extends\\s+[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*");
     private final static Pattern IMPLEMENTS_DEFINITION = Pattern.compile("implements\\s+[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*(,\\s*[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*)*");
 
 
 
     private final static Pattern BODY = Pattern.compile("\\{[\\s\\S]*\\}");
-    private final static Pattern IDENTIFIER_NODOTS = Pattern.compile("[a-zA-Z][a-zA-Z0-9]+");
-    private final static Pattern IDENTIFIER_MAYDOTS_MAYSTAR = Pattern.compile("[a-zA-Z][a-zA-Z0-9]+(\\.[a-zA-Z][a-zA-Z0-9]*)*(\\.\\*)?");
-    private final static Pattern IDENTIFIER_MAYDOTS = Pattern.compile("[a-zA-Z][a-zA-Z0-9]+(\\.[a-zA-Z][a-zA-Z0-9]*)*");
+    private final static Pattern IDENTIFIER_NODOTS = Pattern.compile("[a-zA-Z][a-zA-Z0-9]*");
+    private final static Pattern IDENTIFIER_MAYDOTS_MAYSTAR = Pattern.compile("[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*(\\.\\*)?");
+    private final static Pattern IDENTIFIER_MAYDOTS = Pattern.compile("[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*");
 
 
 
