@@ -19,7 +19,7 @@ import java.io.IOException;
 
 public class main {
 
-    public static final String URL = "https://github.com/JvdK/F4U-Bank";
+    public static final String URL = "https://github.com/boschma2702/research";
     public static final String NAME = "research";
 
     public static void main(String[] args) throws IOException, GitAPIException {
@@ -40,10 +40,11 @@ public class main {
     }
 
 
-    public static void buildVersionGraph(Git git, EvolutionModel model) throws GitAPIException {
+    public static void buildVersionGraph(Git git, EvolutionModel model) throws GitAPIException, IOException {
         Iterable<RevCommit> iterable = git.log().call();
 
         for (RevCommit i : iterable){
+
             String commitHash = i.getId().getName();
             RevCommit[] parents = i.getParents();
 
