@@ -1,32 +1,26 @@
-import graph.BasicNode;
-import graph.EvolutionModel;
+package main;
+
+import main.graph.BasicNode;
+import main.graph.EvolutionModel;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.ObjectLoader;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevTree;
-import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.treewalk.TreeWalk;
-import org.eclipse.jgit.treewalk.filter.PathFilter;
-import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
 
 
 import java.io.File;
 import java.io.IOException;
 
-public class main {
+public class Main {
 
-    public static final String URL = "https://github.com/boschma2702/research";
+    public static final String URL = "https://github.com/meteoorkip/GraphterEffects";
     public static final String NAME = "research";
 
     public static void main(String[] args) throws IOException, GitAPIException {
         EvolutionModel model = new EvolutionModel();
 
-        File gitFolder = new File(System.getProperty("user.dir")+"\\"+NAME);
-        if(gitFolder.exists() && gitFolder.isDirectory()){
+        File gitFolder = new File(System.getProperty("user.dir") + "\\" + NAME);
+        if (gitFolder.exists() && gitFolder.isDirectory()) {
             FileUtils.deleteDirectory(gitFolder);
         }
 
@@ -43,21 +37,21 @@ public class main {
     public static void buildVersionGraph(Git git, EvolutionModel model) throws GitAPIException, IOException {
         Iterable<RevCommit> iterable = git.log().call();
 
-        for (RevCommit i : iterable){
+        for (RevCommit i : iterable) {
 
             String commitHash = i.getId().getName();
             RevCommit[] parents = i.getParents();
 
             BasicNode<String> node = model.evolutionLookup(commitHash);
-            if(node==null){
+            if (node == null) {
                 node = new BasicNode<>(commitHash);
                 model.addEvolutionNode(node);
                 System.out.println("miss");
             }
 
-            for(int count=0; count<parents.length; count++){
+            for (int count = 0; count < parents.length; count++) {
                 BasicNode<String> parent = model.evolutionLookup(parents[count].getId().getName());
-                if(parent==null){
+                if (parent == null) {
                     parent = new BasicNode<>(parents[count].getId().getName());
                     model.addEvolutionNode(parent);
                 }

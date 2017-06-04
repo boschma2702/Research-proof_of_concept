@@ -1,4 +1,4 @@
-package graph;
+package main.graph;
 
 public class ParameterizedEdge<T, T2> extends BasicEdge<T> {
 

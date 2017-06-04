@@ -1,4 +1,4 @@
-package graph;
+package main.graph;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,7 +25,7 @@ public class BasicGraph<T> {
     }
 
     /**
-     * Adds an edge to the graph. This also adds the in and out edge to the nodes in the edge
+     * Adds an edge to the main.graph. This also adds the in and out edge to the nodes in the edge
      * @param edge
      */
     public void addEdge(BasicEdge<T> edge){
@@ -35,7 +35,7 @@ public class BasicGraph<T> {
     }
 
     /**
-     * Adds two nodes as an edge to the graph. This also adds the in and out edge to the nodes
+     * Adds two nodes as an edge to the main.graph. This also adds the in and out edge to the nodes
      * @param from starting point of the edge
      * @param to ending of the edge
      */
@@ -45,10 +45,21 @@ public class BasicGraph<T> {
         to.addIn(from);
     }
 
+    public void addEdge(T from, T to){
+        BasicNode<T> fromNode = lookup.get(from);
+        BasicNode<T> toNode = lookup.get(to);
+        if(fromNode==null || toNode==null){
+            throw new RuntimeException(String.format("identifier not present as node: %s. %s", from.toString(), to.toString()));
+        }
+        edges.add(new BasicEdge<>(fromNode, toNode));
+        fromNode.addOut(toNode);
+        toNode.addIn(fromNode);
+    }
+
     /**
      * This function only works if the T are unique
      * @param object
-     * @return the node object in the graph, null if the node is not present
+     * @return the node object in the main.graph, null if the node is not present
      */
     public BasicNode<T> getNode(T object){
         return lookup.get(object);
