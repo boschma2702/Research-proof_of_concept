@@ -46,6 +46,11 @@ public class EvolutionModel {
         return transitionEdges;
     }
 
+    public void addTransitionEdge(BasicNode<String> from, BasicNode<String> to, int linesChanged){
+        transitionEdges.add(new ParameterizedEdge<>(from, to, linesChanged));
+        from.addTransitionOut(new Tuple<>(to, linesChanged));
+        to.addTransitionIn(new Tuple<>(from, linesChanged));
+    }
 
 }
 

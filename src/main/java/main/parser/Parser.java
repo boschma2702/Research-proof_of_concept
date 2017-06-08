@@ -72,7 +72,7 @@ public class Parser {
         }
         dependencies.removeAll(genericTypes);
         identifyKnownDependencies();
-        System.out.println(this);
+//        System.out.println(this);
     }
 
     public static String getName(String file) throws NotAClassException {
@@ -167,7 +167,6 @@ public class Parser {
             }
         }
         if(className == null){
-            System.out.println("Error was trhown");
             throw new NotAClassException();
         }
     }

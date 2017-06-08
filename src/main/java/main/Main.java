@@ -84,13 +84,15 @@ public class Main {
         System.out.println("done cloning");
         model = new EvolutionModel();
         buildVersionGraph();
-        Iterable<RevCommit> iterable = git.log().call();
 
-        for (RevCommit i : iterable) {
-            System.out.println(String.format(ANSI_PURPLE + "%s" + ANSI_RESET, i.getFullMessage()));
-            System.out.println(model.getSnapshotGraphs().get(model.evolutionLookup(i.getId().getName())));
-            System.out.println("========================");
-        }
+        System.out.println(model.getTransitionEdges().size());
+//        Iterable<RevCommit> iterable = git.log().call();
+//
+////        for (RevCommit i : iterable) {
+////            System.out.println(String.format(ANSI_PURPLE + "%s" + ANSI_RESET, i.getFullMessage()));
+////            System.out.println(model.getSnapshotGraphs().get(model.evolutionLookup(i.getId().getName())));
+////            System.out.println("========================");
+////        }
     }
 
 
@@ -179,6 +181,8 @@ public class Main {
                 List<DiffEntry> entries = diffFormatter.scan(oldTreeIter, newTreeIter);
                 Set<String> toRemoveParsers = new HashSet<>();
                 Map<String, Parser> toReplaceParcers = new HashMap<>();
+                Map<String, Integer> linesChangedMap = new HashMap<>();
+
                 for(DiffEntry entry : entries) {
                     int linesChanged = getLinesChanged(diffFormatter, entry);
 //                    System.out.println(entry);
@@ -207,6 +211,7 @@ public class Main {
                             try{
                                 Parser p = new Parser(getContentsOfChangedFile(parentCommit, entry.getOldPath()));
                                 toReplaceParcers.put(p.getName(), p);
+                                linesChangedMap.put(p.getName(), linesChanged);
                             }catch (NotAClassException e){
                                 System.err.println("Java file found withouth class declaration");
                             }
@@ -228,8 +233,9 @@ public class Main {
                 }
 
                 snapshotGraphBuilderMap.put(parentCommit.getId().getName(), parentBuilder);
-                model.getSnapshotGraphs().put(parentNode, parentBuilder.generateGraph());
-
+                BasicGraph<String> snapshotGraph = parentBuilder.generateGraph();
+                model.getSnapshotGraphs().put(parentNode, snapshotGraph);
+                addTransitionEdges(snapshotGraph, currentSnapshotGraph, linesChangedMap);
             }
 //            System.out.println("=====================================");
         }
@@ -252,6 +258,15 @@ public class Main {
 //            }
 //            System.out.println("=========================================");
 //        }
+    }
+
+    private void addTransitionEdges(BasicGraph<String> fromGraph, BasicGraph<String> toGraph, Map<String, Integer> linesChangedMap) {
+        for(BasicNode<String> from : fromGraph.getNodes()){
+            BasicNode<String> to = toGraph.getNode(from.getObject());
+            if(to!=null){
+                model.addTransitionEdge(from, to, linesChangedMap.getOrDefault(from.getObject(), 0));
+            }
+        }
     }
 
     private int getLinesChanged(DiffFormatter diffFormatter, DiffEntry entry) throws IOException {

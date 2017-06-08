@@ -9,11 +9,15 @@ public class BasicNode<T> {
     private Set<BasicNode<T>> edgesIn;
     private Set<BasicNode<T>> edgesOut;
 
+    private Set<Tuple<BasicNode<String>, Integer>> transitionIn;
+    private Set<Tuple<BasicNode<String>, Integer>> transitionOut;
 
     public BasicNode(T object){
         this.object = object;
         edgesIn = new HashSet<>();
         edgesOut = new HashSet<>();
+        transitionIn = new HashSet<>();
+        transitionOut = new HashSet<>();
     }
 
     /**
@@ -32,6 +36,14 @@ public class BasicNode<T> {
         edgesOut.add(node);
     }
 
+
+    public void addTransitionIn(Tuple<BasicNode<String>, Integer> node){
+        transitionIn.add(node);
+    }
+
+    public void addTransitionOut(Tuple<BasicNode<String>, Integer> node){
+        transitionOut.add(node);
+    }
 
     public T getObject() {
         return object;
