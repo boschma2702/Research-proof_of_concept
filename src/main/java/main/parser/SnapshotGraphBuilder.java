@@ -1,5 +1,6 @@
 package main.parser;
 
+import main.exceptions.NotAClassException;
 import main.graph.BasicGraph;
 import main.graph.BasicNode;
 
@@ -8,22 +9,20 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class SnapshotGraphBuilder {
 
 
-    List<Parser> parsers = new ArrayList<>();
-    BasicGraph<String> snapshotGraph = new BasicGraph<>();
-    Set<String> classes = new HashSet<>();
+    private List<Parser> parsers = new ArrayList<>();
+    private BasicGraph<String> snapshotGraph = new BasicGraph<>();
+    private Set<String> classes = new HashSet<>();
 
-    Set<Parser> parserDependenciesStillToResolve = new HashSet<>();
+    private Set<Parser> parserDependenciesStillToResolve = new HashSet<>();
 
     public static void main(String[] args) throws IOException {
-        File system1 = new File("C:\\Users\\reneb_000\\Documents\\GitLab\\Research-proof_of_concept\\src\\main\\java");
+//        File system1 = new File("C:\\Users\\reneb_000\\Documents\\GitLab\\Research-proof_of_concept\\src\\main\\java");
+        File system1 = new File("C:\\Users\\reneb_000\\Documents\\GitLab\\F4U-Bank\\src\\main\\java");
         List<Parser> parsers = new ArrayList<>();
         getParsersOfFile(system1, parsers);
         SnapshotGraphBuilder builder = new SnapshotGraphBuilder();
@@ -40,7 +39,14 @@ public class SnapshotGraphBuilder {
             }
         }else{
             String contence = readFile(file.getPath(), Charset.defaultCharset());
-            list.add(new Parser(contence));
+            try {
+                Parser parser = new Parser(contence);
+                list.add(parser);
+            }catch (NotAClassException e){
+                System.err.println("Java file detected withouth a class declaration");
+            }
+
+
         }
     }
 
@@ -91,7 +97,10 @@ public class SnapshotGraphBuilder {
         }
 
         for(Parser p : parserDependenciesStillToResolve){
-            for(String dependency : p.getUnknownExternalDependencies()){
+            Iterator<String> iterator = p.getUnknownExternalDependencies().iterator();
+//            for(String dependency : p.getUnknownExternalDependencies()){
+            while(iterator.hasNext()){
+                String dependency = iterator.next();
                 boolean found = false;
                 checkDependency:
                 for(Parser p2 : parsers){
@@ -101,6 +110,8 @@ public class SnapshotGraphBuilder {
                                 for(String prefix : p.getStarImports()){
                                     if(imp.startsWith(prefix)){
                                         snapshotGraph.addEdge(p.getName(), imp);
+                                        p.getKnownDependencies().add(imp);
+                                        iterator.remove();
                                         //break to next to resolve
                                         found = true;
                                         break checkDependency;
@@ -118,8 +129,13 @@ public class SnapshotGraphBuilder {
                 }
             }
         }
+
+
         return snapshotGraph;
     }
 
 
+    public List<Parser> getParsers() {
+        return parsers;
+    }
 }

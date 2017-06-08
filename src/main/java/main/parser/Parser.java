@@ -1,6 +1,8 @@
 package main.parser;
 
 
+import main.exceptions.NotAClassException;
+
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -50,14 +52,7 @@ public class Parser {
     private Set<String> starImports;
 
 
-    public static void main(String[] args){
-        new Parser("package tester; " +
-                "import java.util.lang.Dingetje; " +
-                "import java.util.Tester; " +
-                "public class Test extends Tester<String> { int x; Dingetje w3 = new Dingetje();}");
-    }
-
-    public Parser(String file){
+    public Parser(String file) throws NotAClassException {
         dependencies = new HashSet<>();
         knownDependencies = new HashSet<>();
 //        unknownDependencies = new HashSet<>();
@@ -72,11 +67,39 @@ public class Parser {
         extractClassInheritance(noCommentsNoStringContents);
 
         Matcher bodyMatcher = BODY.matcher(noCommentsNoStringContents);
-        bodyMatcher.find();
-        extractDeclarations(bodyMatcher.group());
+        if(bodyMatcher.find()){
+            extractDeclarations(bodyMatcher.group());
+        }
         dependencies.removeAll(genericTypes);
         identifyKnownDependencies();
         System.out.println(this);
+    }
+
+    public static String getName(String file) throws NotAClassException {
+        String className = "";
+        String packageName = "";
+        Matcher m = CLASS_DEFINITION.matcher(file);
+        if(m.find()) {
+            String result = m.group();
+            Matcher classNameMatcher = IDENTIFIER_NODOTS.matcher(result);
+
+            for (int i = 0; i < 2 && classNameMatcher.find(); i++) ;
+
+            className = classNameMatcher.group(0);
+
+        }
+        if(className == null){
+            throw new NotAClassException();
+        }
+
+        Matcher m2 = PACKAGE_DEFINITION.matcher(file);
+        if(m2.find()) {
+            Matcher packageIdentifierMatcher = IDENTIFIER_MAYDOTS_MAYSTAR.matcher(m2.group());
+
+            for (int i = 0; i < 2 && packageIdentifierMatcher.find(); i++) ;
+            packageName = packageIdentifierMatcher.group();
+        }
+        return packageName + "." + className;
     }
 
     private void identifyKnownDependencies() {
@@ -106,7 +129,7 @@ public class Parser {
     }
 
     //TODO implement nested classes and multiple classes in a single file
-    public void extractClassInheritance(String file){
+    public void extractClassInheritance(String file) throws NotAClassException {
         Matcher m = CLASS_DEFINITION.matcher(file);
         if(m.find()){
             String result = m.group();
@@ -115,6 +138,7 @@ public class Parser {
             for(int i=0; i<2 && classNameMatcher.find(); i++);
 
             className = classNameMatcher.group(0);
+
 
             Matcher genericMatcher = CLASS_GENERIC_DEFINITION.matcher(result);
             if(genericMatcher.find()){
@@ -141,6 +165,10 @@ public class Parser {
                     }
                 }
             }
+        }
+        if(className == null){
+            System.out.println("Error was trhown");
+            throw new NotAClassException();
         }
     }
 

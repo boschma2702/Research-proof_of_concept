@@ -33,5 +33,19 @@ public class EvolutionModel {
     public BasicGraph<String> getEvolutionGraph() {
         return evolutionGraph;
     }
+
+    public BasicGraph<String> getSnapshotGraphOfVersion(BasicNode<String> node){
+        return snapshotGraphs.get(node);
+    }
+
+    public Map<BasicNode<String>, BasicGraph<String>> getSnapshotGraphs() {
+        return snapshotGraphs;
+    }
+
+    public Set<ParameterizedEdge<String, Integer>> getTransitionEdges() {
+        return transitionEdges;
+    }
+
+
 }
 
