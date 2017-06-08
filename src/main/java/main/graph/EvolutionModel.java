@@ -9,12 +9,17 @@ public class EvolutionModel {
 
     private BasicGraph<String> evolutionGraph;
     private Map<BasicNode<String>, BasicGraph<String>> snapshotGraphs;
+
     private Set<ParameterizedEdge<String, Integer>> transitionEdges;
-    
+    private HashMap<BasicNode<String>, Set<ParameterizedEdge<String, Integer>>> inTransitionEdgesOfVersion;
+    private HashMap<BasicNode<String>, Set<ParameterizedEdge<String, Integer>>> outTransitionEdgesOfVersion;
+
     public EvolutionModel(){
         evolutionGraph = new BasicGraph<>();
         snapshotGraphs = new HashMap<>();
         transitionEdges = new HashSet<>();
+        inTransitionEdgesOfVersion = new HashMap<>();
+        outTransitionEdgesOfVersion = new HashMap<>();
     }
     
     public void addEvolutionNode(BasicNode<String> node){
@@ -46,11 +51,29 @@ public class EvolutionModel {
         return transitionEdges;
     }
 
-    public void addTransitionEdge(BasicNode<String> from, BasicNode<String> to, int linesChanged){
-        transitionEdges.add(new ParameterizedEdge<>(from, to, linesChanged));
+    public void addTransitionEdge(BasicNode<String> versionFrom, BasicNode<String> versionTo, BasicNode<String> from, BasicNode<String> to, int linesChanged){
+        ParameterizedEdge<String, Integer> transitionEdge = new ParameterizedEdge<>(from, to, linesChanged);
+        transitionEdges.add(transitionEdge);
         from.addTransitionOut(new Tuple<>(to, linesChanged));
         to.addTransitionIn(new Tuple<>(from, linesChanged));
+
+
+        //TODO
+        addTransistionEdgeToMap(versionFrom, transitionEdge, outTransitionEdgesOfVersion);
+        addTransistionEdgeToMap(versionTo, transitionEdge, inTransitionEdgesOfVersion);
     }
 
+    private void addTransistionEdgeToMap(BasicNode node, ParameterizedEdge edge, HashMap<BasicNode<String>, Set<ParameterizedEdge<String, Integer>>> map){
+        Set<ParameterizedEdge<String, Integer>> set = map.computeIfAbsent(node, k -> new HashSet<>());
+        set.add(edge);
+    }
+
+    public HashMap<BasicNode<String>, Set<ParameterizedEdge<String, Integer>>> getInTransitionEdgesOfVersion() {
+        return inTransitionEdgesOfVersion;
+    }
+
+    public HashMap<BasicNode<String>, Set<ParameterizedEdge<String, Integer>>> getOutTransitionEdgesOfVersion() {
+        return outTransitionEdgesOfVersion;
+    }
 }
 

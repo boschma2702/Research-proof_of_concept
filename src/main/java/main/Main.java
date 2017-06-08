@@ -38,8 +38,7 @@ import static org.eclipse.jgit.lib.ObjectChecker.tree;
 
 public class Main {
 
-        public static final String URL = "https://github.com/meteoorkip/GraphterEffects";
-//    public static final String URL = "https://github.com/boschma2702/research2";
+    public static final String URL = "https://github.com/boschma2702/research2";
     public static final String NAME = "research";
 
     public static final String ANSI_RESET = "\u001B[0m";
@@ -53,19 +52,6 @@ public class Main {
     public static final String ANSI_WHITE = "\u001B[37m";
 
     public static void main(String[] args) throws IOException, GitAPIException {
-//        EvolutionModel model = new EvolutionModel();
-//
-//        File gitFolder = new File(System.getProperty("user.dir") + "\\" + NAME);
-//        if (gitFolder.exists() && gitFolder.isDirectory()) {
-//            FileUtils.deleteDirectory(gitFolder);
-//        }
-//
-//        Git git = Git.cloneRepository().setURI(URL).setDirectory(gitFolder).call();
-//
-//        System.out.println("done cloning");
-//
-//        buildVersionGraph(git, model);
-//        System.out.println(model.getEvolutionGraph().toString());
         new Main();
     }
 
@@ -84,15 +70,18 @@ public class Main {
         System.out.println("done cloning");
         model = new EvolutionModel();
         buildVersionGraph();
+        System.out.println(model.getEvolutionGraph());
 
-        System.out.println(model.getTransitionEdges().size());
-//        Iterable<RevCommit> iterable = git.log().call();
-//
-////        for (RevCommit i : iterable) {
-////            System.out.println(String.format(ANSI_PURPLE + "%s" + ANSI_RESET, i.getFullMessage()));
-////            System.out.println(model.getSnapshotGraphs().get(model.evolutionLookup(i.getId().getName())));
-////            System.out.println("========================");
-////        }
+        Iterable<RevCommit> iterable = git.log().call();
+
+        for (RevCommit i : iterable) {
+            System.out.println(String.format(ANSI_PURPLE + "%s: %s" + ANSI_RESET, i.getFullMessage(), i.getId().getName()));
+            System.out.println(model.getSnapshotGraphs().get(model.evolutionLookup(i.getId().getName())));
+//            System.out.println(model);
+            System.out.println(model.getInTransitionEdgesOfVersion().get(model.getEvolutionGraph().getNode(i.getId().getName())));
+            System.out.println("========================");
+        }
+
     }
 
 
@@ -100,7 +89,6 @@ public class Main {
         Iterable<RevCommit> iterable = git.log().call();
 
         for (RevCommit i : iterable) {
-
             String commitHash = i.getId().getName();
             RevCommit[] parents = i.getParents();
 
@@ -109,16 +97,13 @@ public class Main {
                 node = new BasicNode<>(commitHash);
                 model.addEvolutionNode(node);
                 generateSnapshotGraphOfCommit(i, node);
-//                System.out.println("miss");
             }
-//            List<BasicNode<String>> parentNodes = new ArrayList<>();
             for (int count = 0; count < parents.length; count++) {
                 BasicNode<String> parent = model.evolutionLookup(parents[count].getId().getName());
                 if (parent == null) {
                     parent = new BasicNode<>(parents[count].getId().getName());
                     model.addEvolutionNode(parent);
                 }
-//                parentNodes.add(parent);
                 model.addEvolutionEdge(parent, node, i.getCommitterIdent().getName());
             }
             addSnapshotGraph(i, parents);
@@ -136,24 +121,20 @@ public class Main {
         treeWalk.setFilter(PathSuffixFilter.create(".java"));
         while (treeWalk.next()) {
             if (treeWalk.isSubtree()) {
-//                    System.out.println("dir: " + treeWalk.getPathString());
                 treeWalk.enterSubtree();
             } else {
-//                    System.out.println("file: " + treeWalk.getPathString());
                 ObjectId objectId = treeWalk.getObjectId(0);
                 ObjectLoader loader = repository.open(objectId);
-                try{
+                try {
                     Parser parser = new Parser(new String(loader.getBytes()));
                     builder.addParser(parser);
-                }catch (NotAClassException e){
+                } catch (NotAClassException e) {
                     System.err.println("Java file found withouth class declaration");
                 }
-
             }
         }
         model.getSnapshotGraphs().put(node, builder.generateGraph());
         snapshotGraphBuilderMap.put(commit.getId().getName(), builder);
-//        System.out.println(model.getSnapshotGraphs().get(node));
     }
 
     public void addSnapshotGraph(RevCommit commit, RevCommit[] parents) throws IOException, GitAPIException {
@@ -176,43 +157,36 @@ public class Main {
                 diffFormatter.setRepository(repository);
                 diffFormatter.setPathFilter(PathFilter.create("src/main/java/"));
                 diffFormatter.setContext(0);
-                // list containing all the changes between the commit and its parent
-//                List<DiffEntry> entries = diffFormatter.scan(newTreeIter, oldTreeIter);
                 List<DiffEntry> entries = diffFormatter.scan(oldTreeIter, newTreeIter);
                 Set<String> toRemoveParsers = new HashSet<>();
                 Map<String, Parser> toReplaceParcers = new HashMap<>();
                 Map<String, Integer> linesChangedMap = new HashMap<>();
 
-                for(DiffEntry entry : entries) {
+                for (DiffEntry entry : entries) {
                     int linesChanged = getLinesChanged(diffFormatter, entry);
-//                    System.out.println(entry);
-//                    System.out.println(linesChanged);
-
-
                     switch (entry.getChangeType()) {
                         case ADD:
-                            //TODO add transistion edges
-                            try{
+                            try {
                                 String parser = Parser.getName(getContentsOfChangedFile(commit, entry.getNewPath()));
                                 toRemoveParsers.add(parser);
-                            }catch (NotAClassException e){
+                            } catch (NotAClassException e) {
                                 System.err.println("Java file found withouth class declaration");
                             }
                             break;
                         case DELETE:
-                            try{
+                            try {
                                 Parser parser = new Parser(getContentsOfChangedFile(parentCommit, entry.getOldPath()));
                                 parentBuilder.addParser(parser);
-                            }catch (NotAClassException e){
+                            } catch (NotAClassException e) {
                                 System.err.println("Java file found withouth class declaration");
                             }
                             break;
                         case MODIFY:
-                            try{
+                            try {
                                 Parser p = new Parser(getContentsOfChangedFile(parentCommit, entry.getOldPath()));
                                 toReplaceParcers.put(p.getName(), p);
                                 linesChangedMap.put(p.getName(), linesChanged);
-                            }catch (NotAClassException e){
+                            } catch (NotAClassException e) {
                                 System.err.println("Java file found withouth class declaration");
                             }
                             break;
@@ -221,11 +195,11 @@ public class Main {
                     }
                 }
 
-                for(Parser p:builder.getParsers()){
-                    if(toRemoveParsers.contains(p.getName())){
-                       break;
+                for (Parser p : builder.getParsers()) {
+                    if (toRemoveParsers.contains(p.getName())) {
+                        break;
                     }
-                    if(toReplaceParcers.keySet().contains(p.getName())){
+                    if (toReplaceParcers.keySet().contains(p.getName())) {
                         parentBuilder.addParser(toReplaceParcers.get(p.getName()));
                         break;
                     }
@@ -235,53 +209,30 @@ public class Main {
                 snapshotGraphBuilderMap.put(parentCommit.getId().getName(), parentBuilder);
                 BasicGraph<String> snapshotGraph = parentBuilder.generateGraph();
                 model.getSnapshotGraphs().put(parentNode, snapshotGraph);
-                addTransitionEdges(snapshotGraph, currentSnapshotGraph, linesChangedMap);
+                addTransitionEdges(parentNode, evolutionNode, snapshotGraph, currentSnapshotGraph, linesChangedMap);
             }
-//            System.out.println("=====================================");
         }
-
-//        else{
-//            TreeWalk treeWalk = new TreeWalk(repository);
-//            treeWalk.addTree(tree);
-//            treeWalk.setRecursive(false);
-//            treeWalk.setFilter(PathFilter.create("src/main/java/"));
-//            treeWalk.setFilter(PathSuffixFilter.create(".java"));
-//            while (treeWalk.next()) {
-//
-//
-//                if (treeWalk.isSubtree()) {
-//                    System.out.println("dir: " + treeWalk.getPathString());
-//                    treeWalk.enterSubtree();
-//                } else {
-//                    System.out.println("file: " + treeWalk.getPathString());
-//                }
-//            }
-//            System.out.println("=========================================");
-//        }
     }
 
-    private void addTransitionEdges(BasicGraph<String> fromGraph, BasicGraph<String> toGraph, Map<String, Integer> linesChangedMap) {
-        for(BasicNode<String> from : fromGraph.getNodes()){
+    private void addTransitionEdges(BasicNode<String> evolutionNodeFrom, BasicNode<String> evolutionNodeTo, BasicGraph<String> fromGraph, BasicGraph<String> toGraph, Map<String, Integer> linesChangedMap) {
+        for (BasicNode<String> from : fromGraph.getNodes()) {
             BasicNode<String> to = toGraph.getNode(from.getObject());
-            if(to!=null){
-                model.addTransitionEdge(from, to, linesChangedMap.getOrDefault(from.getObject(), 0));
+            if (to != null) {
+                model.addTransitionEdge(evolutionNodeFrom, evolutionNodeTo, from, to, linesChangedMap.getOrDefault(from.getObject(), 0));
             }
         }
     }
 
     private int getLinesChanged(DiffFormatter diffFormatter, DiffEntry entry) throws IOException {
         int sum = 0;
-        for(Edit e: diffFormatter.toFileHeader(entry).toEditList()){
+        for (Edit e : diffFormatter.toFileHeader(entry).toEditList()) {
             sum += e.getLengthA() + e.getLengthB();
         }
         return sum;
     }
 
-//    private String getContentsOfChangedFile (RevCommit parentCommit, DiffEntry entry){
-//        return getContentsOfChangedFile(parentCommit, entry.getNewPath());
-//    }
 
-    private String getContentsOfChangedFile(RevCommit commit, String path){
+    private String getContentsOfChangedFile(RevCommit commit, String path) {
         try (TreeWalk treeWalk = new TreeWalk(repository)) {
             treeWalk.addTree(commit.getTree());
             treeWalk.setRecursive(true);
@@ -292,69 +243,10 @@ public class Main {
             ObjectId objectId = treeWalk.getObjectId(0);
             ObjectLoader loader = repository.open(objectId);
             return new String(loader.getBytes());
-        }catch (IncorrectObjectTypeException e) {
-            e.printStackTrace();
-        } catch (CorruptObjectException e) {
-            e.printStackTrace();
-        } catch (MissingObjectException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
         return "";
     }
-
-
-//    public static void main(String[] args) throws GitAPIException, IOException {
-//        Git git = Git.cloneRepository()
-//                .setURI("https://github.com/boschma2702/research")
-//                .call();
-//
-//        Iterable<RevCommit> iterable = git.log().call();
-//
-////        for (RevCommit i : iterable){
-////            System.out.println(String.format("#%s parentcount: %d desc: %s", i.getId().getName(), i.getParentCount(), i.getFullMessage()));
-////        }
-//
-//        Repository repository = git.getRepository();
-//
-//        try (RevWalk revWalk = new RevWalk(repository)) {
-//            RevCommit commit = revWalk.parseCommit(ObjectId.fromString("0144505eba0c826e5dfe880e3a1ca392f9cb449d"));
-//            // and using commit's tree find the path
-//            RevTree tree = commit.getTree();
-//            System.out.println("Having tree: " + tree);
-//
-//            // now try to find a specific file
-//            try (TreeWalk treeWalk = new TreeWalk(repository)) {
-//                treeWalk.addTree(tree);
-//                treeWalk.setRecursive(true);
-//                treeWalk.setFilter(PathSuffixFilter.create(".java"));
-//
-//                while(treeWalk.next()){
-//                    ObjectId objectId = treeWalk.getObjectId(0);
-//                    ObjectLoader loader = repository.open(objectId);
-//                    System.out.println(treeWalk.getPathString());
-//                    // and then one can the loader to read the file
-//                    loader.copyTo(System.out);
-//                }
-//
-////                if (!treeWalk.next()) {
-////                    throw new IllegalStateException("Did not find expected file 'README.md'");
-////                }
-////
-////                ObjectId objectId = treeWalk.getObjectId(0);
-////                ObjectLoader loader = repository.open(objectId);
-////
-////                // and then one can the loader to read the file
-////                loader.copyTo(System.out);
-////                System.out.println(treeWalk.next());
-//
-//            }
-//
-//            revWalk.dispose();
-//        }
-//
-//    }
-
 
 }
