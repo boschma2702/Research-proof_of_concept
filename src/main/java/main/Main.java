@@ -40,7 +40,8 @@ import static org.eclipse.jgit.lib.ObjectChecker.tree;
 
 public class Main {
 
-    public static final String URL = "https://github.com/boschma2702/research2";
+//    public static final String URL = "https://github.com/boschma2702/research2";
+    public static final String URL = "https://github.com/JvdK/F4U-Bank";
     public static final String NAME = "research";
 
     public static final String ANSI_RESET = "\u001B[0m";
@@ -87,6 +88,10 @@ public class Main {
         System.out.println(classEditsPerCommit);
         System.out.println(amountLOCPerCommitPerPerson);
         System.out.println(getClassChangeScore);
+
+
+
+
 //        System.out.println(model.getEvolutionGraph());
 
 //        Iterable<RevCommit> iterable = git.log().call();
@@ -233,13 +238,12 @@ public class Main {
 
                 for (Parser p : builder.getParsers()) {
                     if (toRemoveParsers.contains(p.getName())) {
-                        break;
-                    }
-                    if (toReplaceParcers.keySet().contains(p.getName())) {
+                        // do nothing
+                    }else if (toReplaceParcers.keySet().contains(p.getName())) {
                         parentBuilder.addParser(toReplaceParcers.get(p.getName()));
-                        break;
+                    }else {
+                        parentBuilder.addParser(p);
                     }
-                    parentBuilder.addParser(p);
                 }
 
                 snapshotGraphBuilderMap.put(parentCommit.getId().getName(), parentBuilder);
