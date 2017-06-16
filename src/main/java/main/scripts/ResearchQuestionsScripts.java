@@ -44,23 +44,25 @@ public class ResearchQuestionsScripts {
             if(incommingEdges.size()>1){
                 throw new IllegalStateException("Vnon not working correctly");
             }
-            for(BasicEdge<String> edge : incommingEdges){
-                commiter = ((ParameterizedEdge<String,String>)edge).getParameter();
-            }
+            if(incommingEdges.size()==1) {
+                for (BasicEdge<String> edge : incommingEdges) {
+                    commiter = ((ParameterizedEdge<String, String>) edge).getParameter();
+                }
 
-            int amountChanged = 0;
-            for(BasicNode<String> snapshotNode: model.getSnapshotGraphOfVersion(versionNode).getNodes()){
-                if(snapshotNode.getTransitionIn().size()>1){
-                    throw new IllegalStateException("Vnon not working correctly");
+                int amountChanged = 0;
+                for (BasicNode<String> snapshotNode : model.getSnapshotGraphOfVersion(versionNode).getNodes()) {
+                    if (snapshotNode.getTransitionIn().size() > 1) {
+                        throw new IllegalStateException("Vnon not working correctly");
+                    }
+                    for (Tuple<BasicNode<String>, Integer> tuple : snapshotNode.getTransitionIn()) {
+                        amountChanged += tuple.getT2();
+                    }
                 }
-                for(Tuple<BasicNode<String>, Integer> tuple : snapshotNode.getTransitionIn()){
-                    amountChanged += tuple.getT2();
+                if (!map.containsKey(commiter)) {
+                    map.put(commiter, new ArrayList<>());
                 }
+                map.get(commiter).add(amountChanged);
             }
-            if(!map.containsKey(commiter)){
-                map.put(commiter, new ArrayList<>());
-            }
-            map.get(commiter).add(amountChanged);
         }
         return map;
     }

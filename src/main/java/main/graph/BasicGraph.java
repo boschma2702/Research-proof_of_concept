@@ -76,7 +76,7 @@ public class BasicGraph<T> {
     public Set<BasicEdge<T>> getIncommingEdgesOfNode(BasicNode<T> node){
         Set<BasicEdge<T>> s = new HashSet<>();
         for(BasicEdge<T> edge : edges){
-            if(edge.getFrom().equals(node)){
+            if(edge.getTo().equals(node)){
                 s.add(edge);
             }
         }
@@ -86,7 +86,7 @@ public class BasicGraph<T> {
     public Set<BasicEdge<T>> getOutgoingEdgesOfNode(BasicNode<T> node){
         Set<BasicEdge<T>> s = new HashSet<>();
         for(BasicEdge<T> edge : edges){
-            if(edge.getTo().equals(node)){
+            if(edge.getFrom().equals(node)){
                 s.add(edge);
             }
         }

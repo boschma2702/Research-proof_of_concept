@@ -252,6 +252,7 @@ public class Main {
             BasicNode<String> n = new BasicNode<>("p"+commit.getId().getName());
             model.addEvolutionNode(n);
             model.addEvolutionEdge(n, evolutionNode, commit.getCommitterIdent().getName());
+            model.getSnapshotGraphs().put(n, new BasicGraph<>());
         }
     }
 
