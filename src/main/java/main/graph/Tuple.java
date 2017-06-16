@@ -19,4 +19,8 @@ public class Tuple<T1, T2> {
 
     }
 
+    @Override
+    public String toString() {
+        return String.format("(%s, %s)", t1.toString(), t2.toString());
+    }
 }

@@ -87,18 +87,12 @@ public class SnapshotGraphBuilder {
                 } else {
                     parserDependenciesStillToResolve.add(p);
                     p.addUnknownExternalDependencies(dependency);
-                    //still not found, meaning external dependency comming from start import
-//                    if(snapshotGraph.getNode(dependency)==null){
-//                        snapshotGraph.addNode(new BasicNode<>(dependency));
-//                    }
-//                    snapshotGraph.addEdge(p.getName(), dependency);
                 }
             }
         }
 
         for(Parser p : parserDependenciesStillToResolve){
             Iterator<String> iterator = p.getUnknownExternalDependencies().iterator();
-//            for(String dependency : p.getUnknownExternalDependencies()){
             while(iterator.hasNext()){
                 String dependency = iterator.next();
                 boolean found = false;

@@ -57,8 +57,6 @@ public class EvolutionModel {
         from.addTransitionOut(new Tuple<>(to, linesChanged));
         to.addTransitionIn(new Tuple<>(from, linesChanged));
 
-
-        //TODO
         addTransistionEdgeToMap(versionFrom, transitionEdge, outTransitionEdgesOfVersion);
         addTransistionEdgeToMap(versionTo, transitionEdge, inTransitionEdgesOfVersion);
     }

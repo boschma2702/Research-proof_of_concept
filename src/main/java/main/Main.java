@@ -4,6 +4,7 @@ import main.exceptions.NotAClassException;
 import main.graph.BasicGraph;
 import main.graph.BasicNode;
 import main.graph.EvolutionModel;
+import main.graph.Tuple;
 import main.parser.Parser;
 import main.parser.SnapshotGraphBuilder;
 import org.apache.commons.io.FileUtils;
@@ -69,26 +70,37 @@ public class Main {
         repository = git.getRepository();
         System.out.println("done cloning");
         model = new EvolutionModel();
-        buildVersionGraph();
-        System.out.println(model.getEvolutionGraph());
+        System.out.println(buildVersionGraph());
 
-        Iterable<RevCommit> iterable = git.log().call();
+//        System.out.println(model.getEvolutionGraph());
 
-        for (RevCommit i : iterable) {
-            System.out.println(String.format(ANSI_PURPLE + "%s: %s" + ANSI_RESET, i.getFullMessage(), i.getId().getName()));
-            System.out.println(model.getSnapshotGraphs().get(model.evolutionLookup(i.getId().getName())));
-//            System.out.println(model);
-            System.out.println(model.getInTransitionEdgesOfVersion().get(model.getEvolutionGraph().getNode(i.getId().getName())));
-            System.out.println("========================");
-        }
+//        Iterable<RevCommit> iterable = git.log().call();
+//
+//        for (RevCommit i : iterable) {
+//            System.out.println(String.format(ANSI_PURPLE + "%s: %s" + ANSI_RESET, i.getFullMessage(), i.getId().getName()));
+//            System.out.println(model.getSnapshotGraphs().get(model.evolutionLookup(i.getId().getName())));
+////            System.out.println(model);
+//            System.out.println(model.getInTransitionEdgesOfVersion().get(model.getEvolutionGraph().getNode(i.getId().getName())));
+//            System.out.println("========================");
+//        }
 
     }
 
 
-    public void buildVersionGraph() throws GitAPIException, IOException {
+    /**
+     * Builds the version graphs and calls corresponding functions to build the snapshotgraphs and transitionedges
+     * @return a tupel containing the first and the last revcommit of the repository.
+     * @throws GitAPIException
+     * @throws IOException
+     */
+    public Tuple<RevCommit, RevCommit> buildVersionGraph() throws GitAPIException, IOException {
         Iterable<RevCommit> iterable = git.log().call();
-
+        RevCommit first = null;
+        RevCommit last = null;
         for (RevCommit i : iterable) {
+            if(first==null){
+                first = i;
+            }
             String commitHash = i.getId().getName();
             RevCommit[] parents = i.getParents();
 
@@ -107,8 +119,9 @@ public class Main {
                 model.addEvolutionEdge(parent, node, i.getCommitterIdent().getName());
             }
             addSnapshotGraph(i, parents);
+            last = i;
         }
-
+        return new Tuple<>(first, last);
     }
 
     private void generateSnapshotGraphOfCommit(RevCommit commit, BasicNode<String> node) throws IOException {
@@ -137,6 +150,13 @@ public class Main {
         snapshotGraphBuilderMap.put(commit.getId().getName(), builder);
     }
 
+    /**
+     * Creates the snapshotsgraphs. It also calls the function that is responsible to generate the transitionedges
+     * @param commit current commit working on, this snapshotgraph should already been build
+     * @param parents parents of the current commit. Snapshotgraphs of these will be build.
+     * @throws IOException
+     * @throws GitAPIException
+     */
     public void addSnapshotGraph(RevCommit commit, RevCommit[] parents) throws IOException, GitAPIException {
         if (!(parents.length == 0)) {
             BasicNode<String> evolutionNode = model.getEvolutionGraph().getNode(commit.getId().getName());
@@ -214,6 +234,14 @@ public class Main {
         }
     }
 
+    /**
+     * Adds the transition edges. This function relies on the fact that each node in the snapshotgraph has a unique identifier
+     * @param evolutionNodeFrom node from the evolutionmodel from which the transition edges originate
+     * @param evolutionNodeTo node from the evolutionmodel to which the transition edges go to
+     * @param fromGraph the graph where the transitionedges will originate from
+     * @param toGraph the graph to which the transistionedges will go
+     * @param linesChangedMap a map containing the lines changed of each class
+     */
     private void addTransitionEdges(BasicNode<String> evolutionNodeFrom, BasicNode<String> evolutionNodeTo, BasicGraph<String> fromGraph, BasicGraph<String> toGraph, Map<String, Integer> linesChangedMap) {
         for (BasicNode<String> from : fromGraph.getNodes()) {
             BasicNode<String> to = toGraph.getNode(from.getObject());
@@ -231,7 +259,12 @@ public class Main {
         return sum;
     }
 
-
+    /**
+     * Retrieves the contents of the given file located at the given path at the given commit
+     * @param commit
+     * @param path
+     * @return contents of the file
+     */
     private String getContentsOfChangedFile(RevCommit commit, String path) {
         try (TreeWalk treeWalk = new TreeWalk(repository)) {
             treeWalk.addTree(commit.getTree());
