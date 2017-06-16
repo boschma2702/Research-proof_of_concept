@@ -17,7 +17,7 @@ public class Timer {
 
     public void time(String message){
         long t = System.nanoTime();
-        System.out.println(String.format("TIMER:: %s since start: %s since previous: %s", message, (t-startTime)*10E-9, (t-times.get(times.size()-1).getT2())*10E-9));
+        System.out.println(String.format("TIMER:: %s since start: %s since previous: %s", message, (t-startTime), (t-times.get(times.size()-1).getT2())));
         times.add(new Tuple<>(message, t));
     }
 

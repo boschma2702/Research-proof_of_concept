@@ -40,11 +40,11 @@ import static org.eclipse.jgit.lib.ObjectChecker.tree;
 
 public class Main {
 
-    public static final String URL = "https://github.com/boschma2702/research2";
-//    public static final String URL = "https://github.com/jeffreybakker/ING_Project";
+//    public static final String URL = "https://github.com/boschma2702/research2";
+    public static final String URL = "https://github.com/jeffreybakker/ING_Project";
     public static final String NAME = "research";
-    private static final String PATH_MAIN_JAVA = "src/main/java/";
-    private static final String STARTCOMMIT = "f76329c3b69435933266c221b002f146a7562709";
+    private static final String PATH_MAIN_JAVA = "src/main/java/honours/ing/banq/";
+    private static final String STARTCOMMIT = "e8eb48cab5a085116535ecad121cde59276a61fc";
 
     public static final String ANSI_RESET = "\u001B[0m";
     public static final String ANSI_BLACK = "\u001B[30m";
@@ -81,7 +81,7 @@ public class Main {
         Tuple<RevCommit, RevCommit> result = buildVersionGraph();
         timer.time("Done building");
 
-        System.out.println(model.getEvolutionGraph());
+//        System.out.println(model.getEvolutionGraph());
 
         List<Integer> classEditsPerCommit = ResearchQuestionsScripts.getClassEditsPerCommit(model);
         timer.time("Done getClassEdits");
