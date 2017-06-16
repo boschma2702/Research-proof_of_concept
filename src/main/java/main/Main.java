@@ -40,11 +40,11 @@ import static org.eclipse.jgit.lib.ObjectChecker.tree;
 
 public class Main {
 
-//    public static final String URL = "https://github.com/boschma2702/research2";
-    public static final String URL = "https://github.com/jeffreybakker/ING_Project";
+    public static final String URL = "https://github.com/boschma2702/research2";
+//    public static final String URL = "https://github.com/jeffreybakker/ING_Project";
     public static final String NAME = "research";
-    private static final String PATH_MAIN_JAVA = "gni-system/src/main/java/";
-
+    private static final String PATH_MAIN_JAVA = "src/main/java/";
+    private static final String STARTCOMMIT = "f76329c3b69435933266c221b002f146a7562709";
 
     public static final String ANSI_RESET = "\u001B[0m";
     public static final String ANSI_BLACK = "\u001B[30m";
@@ -55,6 +55,7 @@ public class Main {
     public static final String ANSI_PURPLE = "\u001B[35m";
     public static final String ANSI_CYAN = "\u001B[36m";
     public static final String ANSI_WHITE = "\u001B[37m";
+
 
     private main.util.Timer timer;
 
@@ -80,7 +81,7 @@ public class Main {
         Tuple<RevCommit, RevCommit> result = buildVersionGraph();
         timer.time("Done building");
 
-//        System.out.println(model.getEvolutionGraph());
+        System.out.println(model.getEvolutionGraph());
 
         List<Integer> classEditsPerCommit = ResearchQuestionsScripts.getClassEditsPerCommit(model);
         timer.time("Done getClassEdits");
@@ -120,32 +121,40 @@ public class Main {
      * @throws IOException
      */
     public Tuple<RevCommit, RevCommit> buildVersionGraph() throws GitAPIException, IOException {
+        boolean start = STARTCOMMIT.equals("");
         Iterable<RevCommit> iterable = git.log().call();
         RevCommit first = null;
         RevCommit last = null;
         for (RevCommit i : iterable) {
-            if(first==null){
-                first = i;
-            }
-            String commitHash = i.getId().getName();
-            RevCommit[] parents = i.getParents();
-
-            BasicNode<String> node = model.evolutionLookup(commitHash);
-            if (node == null) {
-                node = new BasicNode<>(commitHash);
-                model.addEvolutionNode(node);
-                generateSnapshotGraphOfCommit(i, node);
-            }
-            for (int count = 0; count < parents.length; count++) {
-                BasicNode<String> parent = model.evolutionLookup(parents[count].getId().getName());
-                if (parent == null) {
-                    parent = new BasicNode<>(parents[count].getId().getName());
-                    model.addEvolutionNode(parent);
+            if(!start){
+                if(i.getId().getName().equals(STARTCOMMIT)){
+                    start = true;
                 }
-                model.addEvolutionEdge(parent, node, i.getCommitterIdent().getName());
             }
-            addSnapshotGraph(i, parents);
-            last = i;
+            if(start){
+                if (first == null) {
+                    first = i;
+                }
+                String commitHash = i.getId().getName();
+                RevCommit[] parents = i.getParents();
+
+                BasicNode<String> node = model.evolutionLookup(commitHash);
+                if (node == null) {
+                    node = new BasicNode<>(commitHash);
+                    model.addEvolutionNode(node);
+                    generateSnapshotGraphOfCommit(i, node);
+                }
+                for (int count = 0; count < parents.length; count++) {
+                    BasicNode<String> parent = model.evolutionLookup(parents[count].getId().getName());
+                    if (parent == null) {
+                        parent = new BasicNode<>(parents[count].getId().getName());
+                        model.addEvolutionNode(parent);
+                    }
+                    model.addEvolutionEdge(parent, node, i.getCommitterIdent().getName());
+                }
+                addSnapshotGraph(i, parents);
+                last = i;
+            }
         }
         // last is the first commit made, first the last commit made
         return new Tuple<>(last, first);
