@@ -19,7 +19,7 @@ public class ResearchQuestionsScripts {
             int amountChanged = 0;
             for(BasicNode<String> snapshotNode: model.getSnapshotGraphOfVersion(versionNode).getNodes()){
                 if(snapshotNode.getTransitionIn().size()>1){
-                    throw new IllegalStateException("Vnon not working correctly");
+                    throw new IllegalStateException(String.format("Vnon not working correctly for version: %s class: %s \n transisition edges: %s", versionNode.getObject(), snapshotNode.getObject(), snapshotNode.getTransitionIn()));
                 }
                 for(Tuple<BasicNode<String>, Integer> tuple : snapshotNode.getTransitionIn()){
                     if(tuple.getT2()>0){

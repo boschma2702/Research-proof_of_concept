@@ -41,8 +41,10 @@ import static org.eclipse.jgit.lib.ObjectChecker.tree;
 public class Main {
 
 //    public static final String URL = "https://github.com/boschma2702/research2";
-    public static final String URL = "https://github.com/JvdK/F4U-Bank";
+    public static final String URL = "https://github.com/jeffreybakker/ING_Project";
     public static final String NAME = "research";
+    private static final String PATH_MAIN_JAVA = "gni-system/src/main/java/";
+
 
     public static final String ANSI_RESET = "\u001B[0m";
     public static final String ANSI_BLACK = "\u001B[30m";
@@ -78,12 +80,16 @@ public class Main {
         Tuple<RevCommit, RevCommit> result = buildVersionGraph();
         timer.time("Done building");
 
+//        System.out.println(model.getEvolutionGraph());
+
         List<Integer> classEditsPerCommit = ResearchQuestionsScripts.getClassEditsPerCommit(model);
         timer.time("Done getClassEdits");
         HashMap<String, List<Integer>> amountLOCPerCommitPerPerson = ResearchQuestionsScripts.getAmountOfLOCPerCommitPerPerson(model);
         timer.time("Done amountLoc");
         List<Tuple<String, Double>> getClassChangeScore = ResearchQuestionsScripts.getClassesScoreChange(model, model.evolutionLookup(result.getT2().getId().getName()));
         timer.time("Done classChangeScores");
+
+
 
         System.out.println(classEditsPerCommit);
         System.out.println(amountLOCPerCommitPerPerson);
@@ -151,7 +157,7 @@ public class Main {
         TreeWalk treeWalk = new TreeWalk(repository);
         treeWalk.addTree(tree);
         treeWalk.setRecursive(false);
-        treeWalk.setFilter(PathFilter.create("src/main/java/"));
+        treeWalk.setFilter(PathFilter.create(PATH_MAIN_JAVA));
         treeWalk.setFilter(PathSuffixFilter.create(".java"));
         while (treeWalk.next()) {
             if (treeWalk.isSubtree()) {
@@ -196,7 +202,7 @@ public class Main {
 
                 DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
                 diffFormatter.setRepository(repository);
-                diffFormatter.setPathFilter(PathFilter.create("src/main/java/"));
+                diffFormatter.setPathFilter(PathFilter.create(PATH_MAIN_JAVA));
                 diffFormatter.setContext(0);
                 List<DiffEntry> entries = diffFormatter.scan(oldTreeIter, newTreeIter);
                 Set<String> toRemoveParsers = new HashSet<>();
