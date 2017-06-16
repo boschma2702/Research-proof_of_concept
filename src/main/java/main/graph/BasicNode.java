@@ -7,6 +7,23 @@ public class BasicNode<T> {
 
     private T object;
     private Set<BasicNode<T>> edgesIn;
+
+    public Set<BasicNode<T>> getEdgesIn() {
+        return edgesIn;
+    }
+
+    public Set<BasicNode<T>> getEdgesOut() {
+        return edgesOut;
+    }
+
+    public Set<Tuple<BasicNode<String>, Integer>> getTransitionIn() {
+        return transitionIn;
+    }
+
+    public Set<Tuple<BasicNode<String>, Integer>> getTransitionOut() {
+        return transitionOut;
+    }
+
     private Set<BasicNode<T>> edgesOut;
 
     private Set<Tuple<BasicNode<String>, Integer>> transitionIn;

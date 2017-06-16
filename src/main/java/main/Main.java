@@ -7,6 +7,7 @@ import main.graph.EvolutionModel;
 import main.graph.Tuple;
 import main.parser.Parser;
 import main.parser.SnapshotGraphBuilder;
+import main.scripts.ResearchQuestionsScripts;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -52,6 +53,8 @@ public class Main {
     public static final String ANSI_CYAN = "\u001B[36m";
     public static final String ANSI_WHITE = "\u001B[37m";
 
+    private main.util.Timer timer;
+
     public static void main(String[] args) throws IOException, GitAPIException {
         new Main();
     }
@@ -66,12 +69,24 @@ public class Main {
         if (gitFolder.exists() && gitFolder.isDirectory()) {
             FileUtils.deleteDirectory(gitFolder);
         }
+        timer = new main.util.Timer();
         git = Git.cloneRepository().setURI(URL).setDirectory(gitFolder).call();
         repository = git.getRepository();
-        System.out.println("done cloning");
+        timer.time("Done cloning");
         model = new EvolutionModel();
-        System.out.println(buildVersionGraph());
+        Tuple<RevCommit, RevCommit> result = buildVersionGraph();
+        timer.time("Done building");
 
+        List<Integer> classEditsPerCommit = ResearchQuestionsScripts.getClassEditsPerCommit(model);
+        timer.time("Done getClassEdits");
+        HashMap<String, List<Integer>> amountLOCPerCommitPerPerson = ResearchQuestionsScripts.getAmountOfLOCPerCommitPerPerson(model);
+        timer.time("Done amountLoc");
+        List<Tuple<String, Double>> getClassChangeScore = ResearchQuestionsScripts.getClassesScoreChange(model, model.evolutionLookup(result.getT2().getId().getName()));
+        timer.time("Done classChangeScores");
+
+        System.out.println(classEditsPerCommit);
+        System.out.println(amountLOCPerCommitPerPerson);
+        System.out.println(getClassChangeScore);
 //        System.out.println(model.getEvolutionGraph());
 
 //        Iterable<RevCommit> iterable = git.log().call();
@@ -121,7 +136,8 @@ public class Main {
             addSnapshotGraph(i, parents);
             last = i;
         }
-        return new Tuple<>(first, last);
+        // last is the first commit made, first the last commit made
+        return new Tuple<>(last, first);
     }
 
     private void generateSnapshotGraphOfCommit(RevCommit commit, BasicNode<String> node) throws IOException {
@@ -158,8 +174,8 @@ public class Main {
      * @throws GitAPIException
      */
     public void addSnapshotGraph(RevCommit commit, RevCommit[] parents) throws IOException, GitAPIException {
+        BasicNode<String> evolutionNode = model.getEvolutionGraph().getNode(commit.getId().getName());
         if (!(parents.length == 0)) {
-            BasicNode<String> evolutionNode = model.getEvolutionGraph().getNode(commit.getId().getName());
             BasicGraph<String> currentSnapshotGraph = model.getSnapshotGraphOfVersion(evolutionNode);
             SnapshotGraphBuilder builder = snapshotGraphBuilderMap.get(commit.getId().getName());
 
@@ -231,6 +247,11 @@ public class Main {
                 model.getSnapshotGraphs().put(parentNode, snapshotGraph);
                 addTransitionEdges(parentNode, evolutionNode, snapshotGraph, currentSnapshotGraph, linesChangedMap);
             }
+        }else{
+            //add artificial node
+            BasicNode<String> n = new BasicNode<>("p"+commit.getId().getName());
+            model.addEvolutionNode(n);
+            model.addEvolutionEdge(n, evolutionNode, commit.getCommitterIdent().getName());
         }
     }
 
