@@ -67,8 +67,8 @@ public class ResearchQuestionsScripts {
         return map;
     }
 
-    public static List<Tuple<String, Double>> getClassesScoreChange(EvolutionModel model, BasicNode<String> finalVersion){
-        List<Tuple<String, Double>> list = new ArrayList<>();
+    public static List<Tuple<String, List<Double>>> getClassesScoreChange(EvolutionModel model, BasicNode<String> finalVersion){
+        List<Tuple<String, List<Double>>> list = new ArrayList<>();
         for(BasicNode<String> snapshotNode : model.getSnapshotGraphOfVersion(finalVersion).getNodes()){
             Set<Tuple<BasicNode<String>, Integer>> path = PathOfNode.getPathOfNode(snapshotNode);
             int amountChanged = 0;
@@ -83,7 +83,11 @@ public class ResearchQuestionsScripts {
             }else{
                 score = 1.0 * amountChanged / path.size() * amountChanged;
             }
-            list.add(new Tuple<>(snapshotNode.getObject(), score));
+            ArrayList<Double> l = new ArrayList<>();
+            l.add(score);
+            l.add((double) path.size());
+            l.add((double) amountChanged);
+            list.add(new Tuple<>(snapshotNode.getObject(), l));
         }
         return list;
     }

@@ -41,10 +41,33 @@ import static org.eclipse.jgit.lib.ObjectChecker.tree;
 public class Main {
 
 //    public static final String URL = "https://github.com/boschma2702/research2";
-    public static final String URL = "https://github.com/jeffreybakker/ING_Project";
+
+    //TEAM A
+    public static final String URL = "https://github.com/Saulero/GNI_Honours";
+    private static final String PATH_MAIN_JAVA = "gni-system/src/main/java/";
+    private static final String STARTCOMMIT = "1ea849755b6c315f6eec5a2d99c550f46f6ce1df";
+
+    // TEAM B
+//    public static final String URL = "https://github.com/jeffreybakker/ING_Project";
+//    private static final String PATH_MAIN_JAVA = "src/main/java/honours/ing/banq/";
+//    private static final String STARTCOMMIT = "e8eb48cab5a085116535ecad121cde59276a61fc";
+
+    // TEAM C
+//    public static final String URL = "https://github.com/cjcr-andrei/ING-UT";
+//    private static final String PATH_MAIN_JAVA = "ING Research/src/";
+//    private static final String STARTCOMMIT = "919972e6b075c19a4575870a8de728bc21436e46";
+
+    // TEAM D
+//    public static final String URL = "https://github.com/FHast/INGhonours_GereonFritz";
+//    private static final String PATH_MAIN_JAVA = "ING/src/";
+//    private static final String STARTCOMMIT = "838ab25e8903cb0b9dd1d2d62aa89222d1b87c1c";
+
+    // TEAM E
+//    public static final String URL = "https://github.com/tristandb/springbank-spring";
+//    private static final String PATH_MAIN_JAVA = "src/main/java/nl/springbank/";
+//    private static final String STARTCOMMIT = "010bb1b279df47958ddc2ad9e7ceff0260f101fd";
+
     public static final String NAME = "research";
-    private static final String PATH_MAIN_JAVA = "src/main/java/honours/ing/banq/";
-    private static final String STARTCOMMIT = "e8eb48cab5a085116535ecad121cde59276a61fc";
 
     public static final String ANSI_RESET = "\u001B[0m";
     public static final String ANSI_BLACK = "\u001B[30m";
@@ -81,20 +104,33 @@ public class Main {
         Tuple<RevCommit, RevCommit> result = buildVersionGraph();
         timer.time("Done building");
 
-//        System.out.println(model.getEvolutionGraph());
+        System.out.println(model.getEvolutionGraph());
 
         List<Integer> classEditsPerCommit = ResearchQuestionsScripts.getClassEditsPerCommit(model);
+
+
+        System.out.println("edits: "+getGrouped(classEditsPerCommit));
+
         timer.time("Done getClassEdits");
         HashMap<String, List<Integer>> amountLOCPerCommitPerPerson = ResearchQuestionsScripts.getAmountOfLOCPerCommitPerPerson(model);
+        for(String k:amountLOCPerCommitPerPerson.keySet()){
+            System.out.println(k+": "+getGrouped(amountLOCPerCommitPerPerson.get(k)));
+        }
         timer.time("Done amountLoc");
-        List<Tuple<String, Double>> getClassChangeScore = ResearchQuestionsScripts.getClassesScoreChange(model, model.evolutionLookup(result.getT2().getId().getName()));
+        List<Tuple<String, List<Double>>> getClassChangeScore = ResearchQuestionsScripts.getClassesScoreChange(model, model.evolutionLookup(result.getT2().getId().getName()));
         timer.time("Done classChangeScores");
-
-
-
-        System.out.println(classEditsPerCommit);
-        System.out.println(amountLOCPerCommitPerPerson);
         System.out.println(getClassChangeScore);
+
+        Tuple<String, List<Double>> max = getClassChangeScore.get(0);
+        for(int i=1;i<getClassChangeScore.size(); i++){
+            if(getClassChangeScore.get(i).getT2().get(0)>max.getT2().get(0)){
+                max = getClassChangeScore.get(i);
+            }
+        }
+        System.out.println(max);
+//        System.out.println(classEditsPerCommit);
+//        System.out.println(amountLOCPerCommitPerPerson);
+
 
 
 
@@ -113,6 +149,16 @@ public class Main {
 
     }
 
+    private Map<Integer, Integer> getGrouped(List<Integer> list){
+        Map<Integer, Integer> groupedEdits = new HashMap<>();
+        for(Integer i : list) {
+            if (!groupedEdits.containsKey(i)) {
+                groupedEdits.put(i, 0);
+            }
+            groupedEdits.put(i, groupedEdits.get(i) + 1);
+        }
+        return groupedEdits;
+    }
 
     /**
      * Builds the version graphs and calls corresponding functions to build the snapshotgraphs and transitionedges
@@ -200,6 +246,7 @@ public class Main {
             SnapshotGraphBuilder builder = snapshotGraphBuilderMap.get(commit.getId().getName());
 
             for (RevCommit parentCommit : parents) {
+
                 BasicNode<String> parentNode = model.getEvolutionGraph().getNode(parentCommit.getId().getName());
                 SnapshotGraphBuilder parentBuilder = new SnapshotGraphBuilder();
 
