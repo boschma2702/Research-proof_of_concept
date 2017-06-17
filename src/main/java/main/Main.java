@@ -36,6 +36,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+import static org.eclipse.jgit.lib.ObjectChecker.parent;
 import static org.eclipse.jgit.lib.ObjectChecker.tree;
 
 public class Main {
@@ -308,10 +309,20 @@ public class Main {
                     }
                 }
 
-                snapshotGraphBuilderMap.put(parentCommit.getId().getName(), parentBuilder);
-                BasicGraph<String> snapshotGraph = parentBuilder.generateGraph();
-                model.getSnapshotGraphs().put(parentNode, snapshotGraph);
-                addTransitionEdges(parentNode, evolutionNode, snapshotGraph, currentSnapshotGraph, linesChangedMap);
+                if(snapshotGraphBuilderMap.containsKey(parentCommit.getId().getName())){
+                    // snapshot graph of parent already built
+                    addTransitionEdges(parentNode, evolutionNode, model.getSnapshotGraphOfVersion(parentNode), currentSnapshotGraph, linesChangedMap);
+                }else{
+                    // snapshot graph of parent not yet built
+                    snapshotGraphBuilderMap.put(parentCommit.getId().getName(), parentBuilder);
+                    BasicGraph<String> snapshotGraph = parentBuilder.generateGraph();
+                    model.getSnapshotGraphs().put(parentNode, snapshotGraph);
+                    addTransitionEdges(parentNode, evolutionNode, snapshotGraph, currentSnapshotGraph, linesChangedMap);
+                }
+
+
+
+
             }
         }else{
             //add artificial node
