@@ -42,6 +42,8 @@ import static org.eclipse.jgit.lib.ObjectChecker.tree;
 public class Main {
 
 //    public static final String URL = "https://github.com/boschma2702/research2";
+//    private static final String PATH_MAIN_JAVA = "src/main/java/";
+//    private static final String STARTCOMMIT = "";
 
     //TEAM A
     public static final String URL = "https://github.com/Saulero/GNI_Honours";
@@ -93,6 +95,8 @@ public class Main {
     private EvolutionModel model;
 
     public Main() throws IOException, GitAPIException {
+        int label = 8;
+
         File gitFolder = new File(System.getProperty("user.dir") + "\\" + NAME);
         if (gitFolder.exists() && gitFolder.isDirectory()) {
             FileUtils.deleteDirectory(gitFolder);
@@ -105,17 +109,24 @@ public class Main {
         Tuple<RevCommit, RevCommit> result = buildVersionGraph();
         timer.time("Done building");
 
-        System.out.println(model.getEvolutionGraph());
+//        System.out.println(model.getEvolutionGraph());
 
         List<Integer> classEditsPerCommit = ResearchQuestionsScripts.getClassEditsPerCommit(model);
 
 
-        System.out.println("edits: "+getGrouped(classEditsPerCommit));
+//        System.out.println("edits: "+getGrouped(classEditsPerCommit));
+        printResultsMap(4,getGrouped(classEditsPerCommit));
 
         timer.time("Done getClassEdits");
         HashMap<String, List<Integer>> amountLOCPerCommitPerPerson = ResearchQuestionsScripts.getAmountOfLOCPerCommitPerPerson(model);
+
+
         for(String k:amountLOCPerCommitPerPerson.keySet()){
-            System.out.println(k+": "+getGrouped(amountLOCPerCommitPerPerson.get(k)));
+            if(!k.equals("GitHub")) {
+                System.out.println(k + ": ");
+                printResultsMap(label, getGrouped(amountLOCPerCommitPerPerson.get(k)));
+                label++;
+            }
         }
         timer.time("Done amountLoc");
         List<Tuple<String, List<Double>>> getClassChangeScore = ResearchQuestionsScripts.getClassesScoreChange(model, model.evolutionLookup(result.getT2().getId().getName()));
@@ -132,7 +143,7 @@ public class Main {
 //        System.out.println(classEditsPerCommit);
 //        System.out.println(amountLOCPerCommitPerPerson);
 
-
+        System.out.println(model.getEvolutionGraph().getNodes().size());
 
 
 
@@ -148,6 +159,14 @@ public class Main {
 //            System.out.println("========================");
 //        }
 
+    }
+
+    private void printResultsMap(int label, Map<Integer, Integer> map){
+        System.out.println("---");
+        for(int key : map.keySet()) {
+            System.out.println(String.format("%s %s %s", label, key, map.get(key)));
+        }
+        System.out.println("---");
     }
 
     private Map<Integer, Integer> getGrouped(List<Integer> list){
@@ -199,7 +218,7 @@ public class Main {
                     }
                     model.addEvolutionEdge(parent, node, i.getCommitterIdent().getName());
                 }
-                addSnapshotGraph(i, parents);
+                addSnapshotGraph(i, node);
                 last = i;
             }
         }
@@ -225,7 +244,7 @@ public class Main {
                     Parser parser = new Parser(new String(loader.getBytes()));
                     builder.addParser(parser);
                 } catch (NotAClassException e) {
-                    System.err.println("Java file found withouth class declaration");
+//                    System.err.println("Java file found withouth class declaration");
                 }
             }
         }
@@ -233,105 +252,206 @@ public class Main {
         snapshotGraphBuilderMap.put(commit.getId().getName(), builder);
     }
 
-    /**
-     * Creates the snapshotsgraphs. It also calls the function that is responsible to generate the transitionedges
-     * @param commit current commit working on, this snapshotgraph should already been build
-     * @param parents parents of the current commit. Snapshotgraphs of these will be build.
-     * @throws IOException
-     * @throws GitAPIException
-     */
-    public void addSnapshotGraph(RevCommit commit, RevCommit[] parents) throws IOException, GitAPIException {
-        BasicNode<String> evolutionNode = model.getEvolutionGraph().getNode(commit.getId().getName());
-        if (!(parents.length == 0)) {
-            BasicGraph<String> currentSnapshotGraph = model.getSnapshotGraphOfVersion(evolutionNode);
-            SnapshotGraphBuilder builder = snapshotGraphBuilderMap.get(commit.getId().getName());
 
-            for (RevCommit parentCommit : parents) {
+    public void addSnapshotGraph(RevCommit commit, BasicNode<String> evolutionNode) throws IOException, GitAPIException {
+//        BasicNode<String> evolutionNode = model.getEvolutionGraph().getNode(commit.getId().getName());
+        BasicGraph<String> snapshotGraph = model.getSnapshotGraphOfVersion(evolutionNode);
 
-                BasicNode<String> parentNode = model.getEvolutionGraph().getNode(parentCommit.getId().getName());
-                SnapshotGraphBuilder parentBuilder = new SnapshotGraphBuilder();
+        RevCommit[] parents = commit.getParents();
 
-                ObjectReader reader = repository.newObjectReader();
-                CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
-                oldTreeIter.reset(reader, parentCommit.getTree().getId());
-                CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
-                newTreeIter.reset(reader, commit.getTree().getId());
-
-                DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
-                diffFormatter.setRepository(repository);
-                diffFormatter.setPathFilter(PathFilter.create(PATH_MAIN_JAVA));
-                diffFormatter.setContext(0);
-                List<DiffEntry> entries = diffFormatter.scan(oldTreeIter, newTreeIter);
-                Set<String> toRemoveParsers = new HashSet<>();
-                Map<String, Parser> toReplaceParcers = new HashMap<>();
-                Map<String, Integer> linesChangedMap = new HashMap<>();
-
-                for (DiffEntry entry : entries) {
-                    int linesChanged = getLinesChanged(diffFormatter, entry);
-                    switch (entry.getChangeType()) {
-                        case ADD:
-                            try {
-                                String parser = Parser.getName(getContentsOfChangedFile(commit, entry.getNewPath()));
-                                toRemoveParsers.add(parser);
-                            } catch (NotAClassException e) {
-                                System.err.println("Java file found withouth class declaration");
-                            }
-                            break;
-                        case DELETE:
-                            try {
-                                Parser parser = new Parser(getContentsOfChangedFile(parentCommit, entry.getOldPath()));
-                                parentBuilder.addParser(parser);
-                            } catch (NotAClassException e) {
-                                System.err.println("Java file found withouth class declaration");
-                            }
-                            break;
-                        case MODIFY:
-                            try {
-                                Parser p = new Parser(getContentsOfChangedFile(parentCommit, entry.getOldPath()));
-                                toReplaceParcers.put(p.getName(), p);
-                                linesChangedMap.put(p.getName(), linesChanged);
-                            } catch (NotAClassException e) {
-                                System.err.println("Java file found withouth class declaration");
-                            }
-                            break;
-                        default:
-                            throw new IllegalArgumentException("undefined changetype: " + entry.getChangeType());
-                    }
-                }
-
-                for (Parser p : builder.getParsers()) {
-                    if (toRemoveParsers.contains(p.getName())) {
-                        // do nothing
-                    }else if (toReplaceParcers.keySet().contains(p.getName())) {
-                        parentBuilder.addParser(toReplaceParcers.get(p.getName()));
-                    }else {
-                        parentBuilder.addParser(p);
-                    }
-                }
-
-                if(snapshotGraphBuilderMap.containsKey(parentCommit.getId().getName())){
-                    // snapshot graph of parent already built
-                    addTransitionEdges(parentNode, evolutionNode, model.getSnapshotGraphOfVersion(parentNode), currentSnapshotGraph, linesChangedMap);
-                }else{
-                    // snapshot graph of parent not yet built
-                    snapshotGraphBuilderMap.put(parentCommit.getId().getName(), parentBuilder);
-                    BasicGraph<String> snapshotGraph = parentBuilder.generateGraph();
-                    model.getSnapshotGraphs().put(parentNode, snapshotGraph);
-                    addTransitionEdges(parentNode, evolutionNode, snapshotGraph, currentSnapshotGraph, linesChangedMap);
-                }
-
-
-
-
-            }
-        }else{
+        if (parents.length == 0) {
             //add artificial node
-            BasicNode<String> n = new BasicNode<>("p"+commit.getId().getName());
+            BasicNode<String> n = new BasicNode<>("p" + commit.getId().getName());
             model.addEvolutionNode(n);
             model.addEvolutionEdge(n, evolutionNode, commit.getCommitterIdent().getName());
             model.getSnapshotGraphs().put(n, new BasicGraph<>());
+        } else {
+            //generate snapshot graph for parents.
+            for (RevCommit parentCommit : parents) {
+                //check first if snapshot graph is already generated
+                String parentHash = parentCommit.getId().getName();
+                BasicNode<String> parentEvolutionNode = model.evolutionLookup(parentHash);
+                // this node should already be present
+                if (parentEvolutionNode == null) {
+                    throw new IllegalStateException("Parent not present in the evolution graph");
+                }
+                BasicGraph<String> parentSnapshotGraph = model.getSnapshotGraphOfVersion(parentEvolutionNode);
+                if (parentSnapshotGraph == null) {
+                    //generate the snapshotgraph
+                    generateSnapshotGraphOfCommit(parentCommit, parentEvolutionNode);
+                    parentSnapshotGraph = model.getSnapshotGraphOfVersion(parentEvolutionNode);
+                }
+                // get the linecount changes
+                Map<String, Integer> changedMap = getChangeMap(commit, parentCommit);
+                // create transistion edges
+                createTransitionEdges(parentEvolutionNode, evolutionNode, parentSnapshotGraph, snapshotGraph, changedMap);
+            }
+        }
+
+
+
+
+
+    }
+
+
+
+    public Map<String, Integer> getChangeMap(RevCommit commit, RevCommit parentCommit) throws IOException {
+        HashMap<String, Integer> map = new HashMap<>();
+
+        ObjectReader reader = repository.newObjectReader();
+        CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
+        oldTreeIter.reset(reader, parentCommit.getTree().getId());
+        CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
+        newTreeIter.reset(reader, commit.getTree().getId());
+
+        DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
+        diffFormatter.setRepository(repository);
+        diffFormatter.setPathFilter(PathFilter.create(PATH_MAIN_JAVA));
+        diffFormatter.setContext(0);
+        List<DiffEntry> entries = diffFormatter.scan(oldTreeIter, newTreeIter);
+
+        for(DiffEntry entry:entries){
+            if(entry.getChangeType().equals(DiffEntry.ChangeType.MODIFY)){
+                int linesChanged = getLinesChanged(diffFormatter, entry);
+                try {
+                    String className = Parser.getName(getContentsOfChangedFile(commit, entry.getNewPath()));
+                    map.put(className, linesChanged);
+                } catch (NotAClassException e) {
+                    System.err.println("Not a class found");
+                }
+            }
+        }
+        return map;
+    }
+
+    public void createTransitionEdges(BasicNode<String> versionFrom, BasicNode<String> versionTo, BasicGraph<String> fromSnapshot, BasicGraph<String> toSnapshot, Map<String, Integer> changeMap){
+        for(BasicNode<String> fromSnapshotNode : fromSnapshot.getNodes()){
+            String className = fromSnapshotNode.getObject();
+            int lineChanges = changeMap.getOrDefault(className, 0);
+
+            //find same node in other basicgraph
+            BasicNode<String> toSnapshotNode = toSnapshot.getNode(className);
+            if(toSnapshotNode!=null){
+                // node is present in other snapshotgraph
+                model.addTransitionEdge(versionFrom, versionTo, fromSnapshotNode, toSnapshotNode, lineChanges);
+            }
         }
     }
+
+
+
+
+
+
+
+
+
+
+// OLD FUNCTION
+//        BasicNode<String> evolutionNode = model.getEvolutionGraph().getNode(commit.getId().getName());
+//        if (!(parents.length == 0)) {
+//            BasicGraph<String> currentSnapshotGraph = model.getSnapshotGraphOfVersion(evolutionNode);
+//            SnapshotGraphBuilder builder = snapshotGraphBuilderMap.get(commit.getId().getName());
+//
+//            for (RevCommit parentCommit : parents) {
+//
+//                BasicNode<String> parentNode = model.getEvolutionGraph().getNode(parentCommit.getId().getName());
+//                SnapshotGraphBuilder parentBuilder = new SnapshotGraphBuilder();
+//
+//                ObjectReader reader = repository.newObjectReader();
+//                CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
+//                oldTreeIter.reset(reader, parentCommit.getTree().getId());
+//                CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
+//                newTreeIter.reset(reader, commit.getTree().getId());
+//
+//                DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
+//                diffFormatter.setRepository(repository);
+//                diffFormatter.setPathFilter(PathFilter.create(PATH_MAIN_JAVA));
+//                diffFormatter.setContext(0);
+//                List<DiffEntry> entries = diffFormatter.scan(oldTreeIter, newTreeIter);
+//                Set<String> toRemoveParsers = new HashSet<>();
+//                Map<String, Parser> toReplaceParcers = new HashMap<>();
+//                Map<String, Integer> linesChangedMap = new HashMap<>();
+//
+//                for (DiffEntry entry : entries) {
+//                    int linesChanged = getLinesChanged(diffFormatter, entry);
+//                    switch (entry.getChangeType()) {
+//                        case ADD:
+//                            try {
+//                                String parser = Parser.getName(getContentsOfChangedFile(commit, entry.getNewPath()));
+//                                toRemoveParsers.add(parser);
+//                            } catch (NotAClassException e) {
+//                                System.err.println("Java file found withouth class declaration");
+//                            }
+//                            break;
+//                        case DELETE:
+//                            try {
+//                                Parser parser = new Parser(getContentsOfChangedFile(parentCommit, entry.getOldPath()));
+//                                parentBuilder.addParser(parser);
+//                            } catch (NotAClassException e) {
+//                                System.err.println("Java file found withouth class declaration");
+//                            }
+//                            break;
+//                        case MODIFY:
+//                            try {
+//                                Parser p = new Parser(getContentsOfChangedFile(parentCommit, entry.getOldPath()));
+//                                toReplaceParcers.put(p.getName(), p);
+//                                linesChangedMap.put(p.getName(), linesChanged);
+//                            } catch (NotAClassException e) {
+//                                System.err.println("Java file found withouth class declaration");
+//                            }
+//                            break;
+//                        default:
+//                            throw new IllegalArgumentException("undefined changetype: " + entry.getChangeType());
+//                    }
+//                }
+//
+//                for (Parser p : builder.getParsers()) {
+//                    if (toRemoveParsers.contains(p.getName())) {
+//                        // do nothing
+//                    }else if (toReplaceParcers.keySet().contains(p.getName())) {
+//                        parentBuilder.addParser(toReplaceParcers.get(p.getName()));
+//                    }else {
+//                        parentBuilder.addParser(p);
+//                    }
+//                }
+//                int count = 0;
+//                for(Parser testParser:parentBuilder.getParsers()){
+//                    if(testParser.getName().equals("pin.PinServiceMain")){
+//                        count ++;
+//                    }
+//                }
+//                if(count>1){
+////                    throw new IllegalStateException("pin.PinserviceMain two times present");
+//                }
+//                if(snapshotGraphBuilderMap.containsKey(parentCommit.getId().getName())){
+//                    // snapshot graph of parent already built
+//                    addTransitionEdges(parentNode, evolutionNode, model.getSnapshotGraphOfVersion(parentNode), currentSnapshotGraph, linesChangedMap);
+//                }else{
+//                    // snapshot graph of parent not yet built
+//                    snapshotGraphBuilderMap.put(parentCommit.getId().getName(), parentBuilder);
+//                    BasicGraph<String> snapshotGraph = parentBuilder.generateGraph();
+//                    model.getSnapshotGraphs().put(parentNode, snapshotGraph);
+//                    addTransitionEdges(parentNode, evolutionNode, snapshotGraph, currentSnapshotGraph, linesChangedMap);
+//                }
+//
+//
+//
+//
+//            }
+//        }else{
+//            //add artificial node
+//            BasicNode<String> n = new BasicNode<>("p"+commit.getId().getName());
+//            model.addEvolutionNode(n);
+//            model.addEvolutionEdge(n, evolutionNode, commit.getCommitterIdent().getName());
+//            model.getSnapshotGraphs().put(n, new BasicGraph<>());
+//        }
+//    }
+
+
+
+
 
     /**
      * Adds the transition edges. This function relies on the fact that each node in the snapshotgraph has a unique identifier

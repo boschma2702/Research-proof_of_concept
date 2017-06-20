@@ -9,7 +9,8 @@ import java.util.regex.Pattern;
 
 public class Parser {
 
-    private final static Pattern COMMENTS = Pattern.compile("(\\/\\/.*)|\\/\\*(?:.|[\\n\\r])*?\\*\\/");
+//    private final static Pattern COMMENTS = Pattern.compile("(\\/\\/.*)|(\\/\\*(?:.|[\\n\\r])*?\\*\\/)");
+    private final static Pattern COMMENTS = Pattern.compile("(\\/\\/.*)|(\\/\\*[\\s\\S]*?\\*\\/)");
     private final static Pattern CLASS_DEFINITION = Pattern.compile("(class|enum|interface)\\s+[a-zA-Z][a-zA-Z0-9]*(\\s*<([a-zA-Z][a-zA-Z0-9]*)(,\\s*([a-zA-Z][a-zA-Z0-9]*))*>)?");
     private final static Pattern CLASS_GENERIC_DEFINITION = Pattern.compile("<([a-zA-Z][a-zA-Z0-9]*)(,\\s*([a-zA-Z][a-zA-Z0-9]*))*>");
 
@@ -36,13 +37,12 @@ public class Parser {
     private final static Set<String> primitives = new HashSet<>(Arrays.asList("float", "double", "int", "boolean", "char", "long", "shot", "byte"));
 
 
-
     private Set<String> dependencies;
     /** dependencies either defined using path or can be derived from the imports **/
     private Set<String> knownDependencies;
     /** dependencies inside same package or used libraries **/
     private Set<String> unknownExternalDependencies;
-    /** fully specified classname. Example: com.example.Example **/
+    /**  specified classname. Example: Example **/
     private String className;
     /** location of the class **/
     private String packageName;
@@ -52,26 +52,37 @@ public class Parser {
     private Set<String> starImports;
 
 
-    public Parser(String file) throws NotAClassException {
-        dependencies = new HashSet<>();
-        knownDependencies = new HashSet<>();
-//        unknownDependencies = new HashSet<>();
-        genericTypes = new HashSet<>();
-        imports = new HashSet<>();
-        unknownExternalDependencies = new HashSet<>();
-        starImports = new HashSet<>();
-        String noStringContents = removeStringContents(file);
-        String noCommentsNoStringContents = removeComments(noStringContents);
-        extractPackageDeclaration(noCommentsNoStringContents);
-        extractImports(noCommentsNoStringContents);
-        extractClassInheritance(noCommentsNoStringContents);
+    public static void main(String[] args) throws NotAClassException {
 
-        Matcher bodyMatcher = BODY.matcher(noCommentsNoStringContents);
-        if(bodyMatcher.find()){
-            extractDeclarations(bodyMatcher.group());
+    }
+
+    public Parser(String file) throws NotAClassException {
+
+            dependencies = new HashSet<>();
+            knownDependencies = new HashSet<>();
+//        unknownDependencies = new HashSet<>();
+            genericTypes = new HashSet<>();
+            imports = new HashSet<>();
+            unknownExternalDependencies = new HashSet<>();
+            starImports = new HashSet<>();
+        try {
+            String noStringContents = removeStringContents(file);
+            String noCommentsNoStringContents = removeComments(noStringContents);
+
+            extractPackageDeclaration(noCommentsNoStringContents);
+            extractImports(noCommentsNoStringContents);
+            extractClassInheritance(noCommentsNoStringContents);
+
+            Matcher bodyMatcher = BODY.matcher(noCommentsNoStringContents);
+            if (bodyMatcher.find()) {
+                extractDeclarations(bodyMatcher.group());
+            }
+            dependencies.removeAll(genericTypes);
+            identifyKnownDependencies();
+        }catch (StackOverflowError e){
+            System.out.println(file);
+            throw new IllegalStateException("Stack overflow");
         }
-        dependencies.removeAll(genericTypes);
-        identifyKnownDependencies();
 //        System.out.println(this);
     }
 
@@ -179,7 +190,7 @@ public class Parser {
             for(int i=0; i<2 && packageIdentifierMatcher.find(); i++);
             packageName = packageIdentifierMatcher.group();
         }else{
-            System.err.println("No package defined");
+//            System.err.println("No package defined");
         }
     }
 

@@ -65,24 +65,38 @@ public class SnapshotGraphBuilder {
     }
 
     public BasicGraph<String> generateGraph() {
+        // add all the known own classes
         for (Parser p : parsers) {
             snapshotGraph.addNode(new BasicNode<>(p.getName()));
-            classes.add(p.getClassName());
+            if(classes.contains(p.getName())){
+//                throw new IllegalStateException("Class already present in graph: "+p.getName());
+            }
+            classes.add(p.getName());
         }
+
         for (Parser p : parsers) {
+            // add known dependendies and edge (checks if a class is already added
             for (String dependency : p.getKnownDependencies()) {
                 if(snapshotGraph.getNode(dependency)==null){
                     snapshotGraph.addNode(new BasicNode<>(dependency));
                 }
                 snapshotGraph.addEdge(p.getName(), dependency);
             }
+
+            // try to resolve the unknown dependencies, if can not resolved the dependency is an external dependency
             for (String dependency : p.getDependencies()) {
-                if (classes.contains(dependency)) {
+                String name = p.getPackageName()+"."+dependency;
+                if (classes.contains(name)) {
+                    boolean found = false;
                     for (Parser parser : parsers) {
-                        if (parser.getClassName().equals(dependency)) {
+                        if (parser.getName().equals(name)) {
                             snapshotGraph.addEdge(p.getName(), parser.getName());
+                            found = true;
                             break;
                         }
+                    }
+                    if(!found) {
+                        throw new IllegalStateException("Class should be present in parser set, class: " + name + "\nparsers: " + parsers);
                     }
                 } else {
                     parserDependenciesStillToResolve.add(p);
