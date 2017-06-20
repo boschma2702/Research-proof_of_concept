@@ -22,7 +22,7 @@ public class SnapshotGraphBuilder {
 
     public static void main(String[] args) throws IOException {
 //        File system1 = new File("C:\\Users\\reneb_000\\Documents\\GitLab\\Research-proof_of_concept\\src\\main\\java");
-        File system1 = new File("C:\\Users\\reneb_000\\Documents\\GitLab\\F4U-Bank\\src\\main\\java");
+        File system1 = new File("C:\\Users\\Boschma\\Documents\\GitHub\\Research-proof_of_concept\\research\\gni-system\\src\\main\\java");
         List<Parser> parsers = new ArrayList<>();
         getParsersOfFile(system1, parsers);
         SnapshotGraphBuilder builder = new SnapshotGraphBuilder();

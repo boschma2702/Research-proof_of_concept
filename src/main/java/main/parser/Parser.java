@@ -19,7 +19,7 @@ public class Parser {
 
     private final static Pattern FIELD_DECLARATION = Pattern.compile("[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*((\\[\\])|(<.*?>))?\\s+[a-zA-Z][a-zA-Z0-9]*\\s*(;|=)");
 
-    private final static Pattern STRING_DECLARATION = Pattern.compile("([\"'])(?:(?=(\\\\?))\\2([\\S\\s]))*?\\1");
+    private final static Pattern STRING_DECLARATION = Pattern.compile("([\"])(?:(?=(\\\\?))\\2([\\S\\s]))*?\\1");
 
     private final static Pattern EXTENDS_DEFINITION = Pattern.compile("extends\\s+[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*(<.*>)?");
     private final static Pattern IMPLEMENTS_DEFINITION = Pattern.compile("implements\\s+[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*(,\\s*[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*)*(<.*>)?");
@@ -53,7 +53,200 @@ public class Parser {
 
 
     public static void main(String[] args) throws NotAClassException {
-
+        Parser p = new Parser("package accounts;\n" +
+                "\n" +
+                "import java.util.HashSet;\n" +
+                "import java.util.Set;\n" +
+                "\n" +
+                "import javax.persistence.CascadeType;\n" +
+                "import javax.persistence.Column;\n" +
+                "import javax.persistence.Entity;\n" +
+                "import javax.persistence.JoinColumn;\n" +
+                "import javax.persistence.FetchType;\n" +
+                "import javax.persistence.Id;\n" +
+                "import javax.persistence.JoinTable;\n" +
+                "import javax.persistence.ManyToMany;\n" +
+                "import javax.persistence.Table;\n" +
+                "import javax.persistence.Transient;\n" +
+                "\n" +
+                "import database.DataManager;\n" +
+                "\n" +
+                "/**\n" +
+                " * A bank customer's main account, to which multiple <code>BankAccounts</code> may be tied.\n" +
+                " * @author Andrei Cojocaru\n" +
+                " */\n" +
+                "@Entity\n" +
+                "@Table(name = \"customeraccounts\")\n" +
+                "public class CustomerAccount implements database.DBObject {\n" +
+                "\tprivate String name;\n" +
+                "\tprivate String surname;\n" +
+                "\tprivate String BSN;\n" +
+                "\tprivate String streetAddress;\n" +
+                "\tprivate String phoneNumber;\n" +
+                "\tprivate String email;\n" +
+                "\tprivate String birthdate;\n" +
+                "\tprivate Set<BankAccount> bankAccounts = new HashSet<BankAccount>();\n" +
+                "\tpublic static final String CLASSNAME = \"accounts.CustomerAccount\";\n" +
+                "\tpublic static final String PRIMARYKEYNAME = \"BSN\";\n" +
+                "\t\n" +
+                "\t/**\n" +
+                "\t * Create a new <code>CustomerAccount</code> with the given customer information.\n" +
+                "\t * @param name The customer's name\n" +
+                "\t * @param surname The customer's surname\n" +
+                "\t * @param BSN The customer's BSN\n" +
+                "\t * @param streetAddress The customer's street address\n" +
+                "\t * @param phoneNumber The customer's phone number\n" +
+                "\t * @param email The customer's email\n" +
+                "\t * @param birthdate The customer's date of birth\n" +
+                "\t * @param addToDB Whether or not to add the newly-created customer account to the database\n" +
+                "\t */\n" +
+                "\tpublic CustomerAccount(String name, String surname, String BSN, String streetAddress, String phoneNumber, \n" +
+                "\t\t\tString email, String birthdate) {\n" +
+                "\t\tthis.setName(name);\n" +
+                "\t\tthis.setSurname(surname);\n" +
+                "\t\tthis.setBSN(BSN);\n" +
+                "\t\tthis.setStreetAddress(streetAddress);\n" +
+                "\t\tthis.setPhoneNumber(phoneNumber);\n" +
+                "\t\tthis.setEmail(email);\n" +
+                "\t\tthis.setBirthdate(birthdate);\n" +
+                "\t}\n" +
+                "\t\n" +
+                "\tpublic CustomerAccount() {\n" +
+                "\t\t\n" +
+                "\t}\n" +
+                "\t\n" +
+                "\t/**\n" +
+                "\t * Open a new <code>BankAccount</code> in this holder's name.\n" +
+                "\t * Adds this and the respective association to the database.\n" +
+                "\t */\n" +
+                "\tpublic void openBankAccount() {\n" +
+                "\t\tBankAccount newAccount = new BankAccount(getBSN());\n" +
+                "\t\taddBankAccount(newAccount);\n" +
+                "\t}\n" +
+                "\t\n" +
+                "\t/**\n" +
+                "\t * Adds the <code>CustomerAccount</code> as an owner to a pre-existing\n" +
+                "\t * <code>BankAccount</code>. Also adds the appropriate association to the\n" +
+                "\t * database.\n" +
+                "\t * @param account The <code>BankAccount</code> to be owned by the customer.\n" +
+                "\t */\n" +
+                "\tpublic void addBankAccount(BankAccount account) {\n" +
+                "\t\tbankAccounts.add(account);\n" +
+                "\t\taccount.addOwner(this);\n" +
+                "\t}\n" +
+                "\t\n" +
+                "\t/**\n" +
+                "\t * Removes the <code>CustomerAccount</code>'s ownership of a given\n" +
+                "\t * <code>BankAccount</code>.\n" +
+                "\t * @param account The <code>BankAccount</code> to remove ownership of\n" +
+                "\t */\n" +
+                "\tpublic void removeBankAccount(BankAccount account) {\n" +
+                "\t\tbankAccounts.remove(account);\n" +
+                "\t}\n" +
+                "\n" +
+                "\t@Column(name = \"name\")\n" +
+                "\tpublic String getName() {\n" +
+                "\t\treturn name;\n" +
+                "\t}\n" +
+                "\n" +
+                "\tpublic void setName(String name) {\n" +
+                "\t\tthis.name = name;\n" +
+                "\t}\n" +
+                "\n" +
+                "\t@Column(name = \"surname\")\n" +
+                "\tpublic String getSurname() {\n" +
+                "\t\treturn surname;\n" +
+                "\t}\n" +
+                "\n" +
+                "\tpublic void setSurname(String surname) {\n" +
+                "\t\tthis.surname = surname;\n" +
+                "\t}\n" +
+                "\n" +
+                "\t@Id\n" +
+                "\t@Column(name = \"customer_BSN\")\n" +
+                "\tpublic String getBSN() {\n" +
+                "\t\treturn BSN;\n" +
+                "\t}\n" +
+                "\n" +
+                "\tpublic void setBSN(String bSN) {\n" +
+                "\t\tBSN = bSN;\n" +
+                "\t}\n" +
+                "\n" +
+                "\t@Column(name = \"street_address\")\n" +
+                "\tpublic String getStreetAddress() {\n" +
+                "\t\treturn streetAddress;\n" +
+                "\t}\n" +
+                "\n" +
+                "\tpublic void setStreetAddress(String streetAddress) {\n" +
+                "\t\tthis.streetAddress = streetAddress;\n" +
+                "\t}\n" +
+                "\n" +
+                "\t@Column(name = \"phone_number\")\n" +
+                "\tpublic String getPhoneNumber() {\n" +
+                "\t\treturn phoneNumber;\n" +
+                "\t}\n" +
+                "\n" +
+                "\tpublic void setPhoneNumber(String phoneNumber) {\n" +
+                "\t\tthis.phoneNumber = phoneNumber;\n" +
+                "\t}\n" +
+                "\n" +
+                "\t@Column(name = \"email\")\n" +
+                "\tpublic String getEmail() {\n" +
+                "\t\treturn email;\n" +
+                "\t}\n" +
+                "\n" +
+                "\tpublic void setEmail(String email) {\n" +
+                "\t\tthis.email = email;\n" +
+                "\t}\n" +
+                "\n" +
+                "\t@Column(name = \"birth_date\")\n" +
+                "\tpublic String getBirthdate() {\n" +
+                "\t\treturn birthdate;\n" +
+                "\t}\n" +
+                "\n" +
+                "\tpublic void setBirthdate(String birthdate) {\n" +
+                "\t\tthis.birthdate = birthdate;\n" +
+                "\t}\n" +
+                "\t\n" +
+                "\t@Transient\n" +
+                "\tpublic String getPrimaryKeyName() {\n" +
+                "\t\treturn PRIMARYKEYNAME;\n" +
+                "\t}\n" +
+                "\t\n" +
+                "\t@Transient\n" +
+                "\tpublic String getPrimaryKeyVal() {\n" +
+                "\t\treturn BSN;\n" +
+                "\t}\n" +
+                "\t\n" +
+                "\t@Transient\n" +
+                "\tpublic String getClassName() {\n" +
+                "\t\treturn CLASSNAME;\n" +
+                "\t}\n" +
+                "\n" +
+                "\t@ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)\n" +
+                "\t@JoinTable(name = \"customerbankaccounts\", joinColumns = {\n" +
+                "\t\t\t@JoinColumn(name = \"customer_BSN\", nullable = false, updatable = false)}, inverseJoinColumns = {\n" +
+                "\t\t\t\t\t@JoinColumn(name = \"IBAN\", nullable = false, updatable = false)})\n" +
+                "\tpublic Set<BankAccount> getBankAccounts() {\n" +
+                "\t\treturn bankAccounts;\n" +
+                "\t}\n" +
+                "\n" +
+                "\tpublic void setBankAccounts(Set<BankAccount> bankAccounts) {\n" +
+                "\t\tthis.bankAccounts = bankAccounts;\n" +
+                "\t}\n" +
+                "\t\n" +
+                "\tpublic void saveToDB() {\n" +
+                "\t\tDataManager.save(this);\n" +
+                "\t}\n" +
+                "\t\n" +
+                "\tpublic void deleteFromDB() {\n" +
+                "\t\tfor (BankAccount key : getBankAccounts()) {\n" +
+                "\t\t\tkey.deleteFromDB();\n" +
+                "\t\t}\n" +
+                "\t\tDataManager.removeEntryFromDB(this);\n" +
+                "\t}\n" +
+                "}\n");
+        System.out.println(p);
     }
 
     public Parser(String file) throws NotAClassException {

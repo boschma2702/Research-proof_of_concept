@@ -41,6 +41,12 @@ import static org.eclipse.jgit.lib.ObjectChecker.tree;
 
 public class Main {
 
+    private static final boolean PATHFILTER = true;
+
+//    public static final String URL = "https://github.com/MyCollab/mycollab";
+//    private static final String PATH_MAIN_JAVA = "";
+//    private static final String STARTCOMMIT = "";
+
 //    public static final String URL = "https://github.com/boschma2702/research2";
 //    private static final String PATH_MAIN_JAVA = "src/main/java/";
 //    private static final String STARTCOMMIT = "";
@@ -83,6 +89,7 @@ public class Main {
     public static final String ANSI_WHITE = "\u001B[37m";
 
 
+
     private main.util.Timer timer;
 
     public static void main(String[] args) throws IOException, GitAPIException {
@@ -93,6 +100,8 @@ public class Main {
     private Repository repository;
     private Map<String, SnapshotGraphBuilder> snapshotGraphBuilderMap = new HashMap<>();
     private EvolutionModel model;
+
+    private List<Integer> classesPerCommit = new ArrayList<>();
 
     public Main() throws IOException, GitAPIException {
         int label = 8;
@@ -108,7 +117,14 @@ public class Main {
         model = new EvolutionModel();
         Tuple<RevCommit, RevCommit> result = buildVersionGraph();
         timer.time("Done building");
+        double sum = 0;
+        for(int i:classesPerCommit){
+            sum += i;
+        }
+        double average = sum / classesPerCommit.size();
+        System.out.println(average);
 
+        /*
 //        System.out.println(model.getEvolutionGraph());
 
         List<Integer> classEditsPerCommit = ResearchQuestionsScripts.getClassEditsPerCommit(model);
@@ -144,8 +160,13 @@ public class Main {
 //        System.out.println(amountLOCPerCommitPerPerson);
 
         System.out.println(model.getEvolutionGraph().getNodes().size());
-
-
+        System.out.println(classEditsPerCommit);
+        double sum = 0;
+        for(int i:classesPerCommit){
+            sum += i;
+        }
+        double average = sum / classesPerCommit.size();
+        System.out.println(average);
 
 //        System.out.println(model.getEvolutionGraph());
 
@@ -158,7 +179,7 @@ public class Main {
 //            System.out.println(model.getInTransitionEdgesOfVersion().get(model.getEvolutionGraph().getNode(i.getId().getName())));
 //            System.out.println("========================");
 //        }
-
+*/
     }
 
     private void printResultsMap(int label, Map<Integer, Integer> map){
@@ -227,12 +248,18 @@ public class Main {
     }
 
     private void generateSnapshotGraphOfCommit(RevCommit commit, BasicNode<String> node) throws IOException {
+        int classesInCommit = 0;
         SnapshotGraphBuilder builder = new SnapshotGraphBuilder();
         RevTree tree = commit.getTree();
         TreeWalk treeWalk = new TreeWalk(repository);
         treeWalk.addTree(tree);
-        treeWalk.setRecursive(false);
-        treeWalk.setFilter(PathFilter.create(PATH_MAIN_JAVA));
+        treeWalk.setRecursive(true);
+
+        if(PATHFILTER) {
+            treeWalk.setFilter(PathFilter.create(PATH_MAIN_JAVA));
+        }
+
+
         treeWalk.setFilter(PathSuffixFilter.create(".java"));
         while (treeWalk.next()) {
             if (treeWalk.isSubtree()) {
@@ -240,16 +267,20 @@ public class Main {
             } else {
                 ObjectId objectId = treeWalk.getObjectId(0);
                 ObjectLoader loader = repository.open(objectId);
+                String contents = new String(loader.getBytes());
                 try {
-                    Parser parser = new Parser(new String(loader.getBytes()));
+                    Parser parser = new Parser(contents);
                     builder.addParser(parser);
+                    classesInCommit ++;
                 } catch (NotAClassException e) {
+
 //                    System.err.println("Java file found withouth class declaration");
                 }
             }
         }
         model.getSnapshotGraphs().put(node, builder.generateGraph());
         snapshotGraphBuilderMap.put(commit.getId().getName(), builder);
+        classesPerCommit.add(classesInCommit);
     }
 
 
@@ -307,7 +338,11 @@ public class Main {
 
         DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
         diffFormatter.setRepository(repository);
-        diffFormatter.setPathFilter(PathFilter.create(PATH_MAIN_JAVA));
+
+        if(PATHFILTER) {
+            diffFormatter.setPathFilter(PathFilter.create(PATH_MAIN_JAVA));
+        }
+
         diffFormatter.setContext(0);
         List<DiffEntry> entries = diffFormatter.scan(oldTreeIter, newTreeIter);
 
