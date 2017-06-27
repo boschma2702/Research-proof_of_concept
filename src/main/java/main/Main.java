@@ -41,20 +41,20 @@ import static org.eclipse.jgit.lib.ObjectChecker.tree;
 
 public class Main {
 
-    private static final boolean PATHFILTER = true;
+    private static final boolean PATHFILTER = false;
 
-//    public static final String URL = "https://github.com/MyCollab/mycollab";
-//    private static final String PATH_MAIN_JAVA = "";
-//    private static final String STARTCOMMIT = "";
+    public static final String URL = "https://github.com/MyCollab/mycollab";
+    private static final String PATH_MAIN_JAVA = "";
+    private static final String STARTCOMMIT = "";
 
 //    public static final String URL = "https://github.com/boschma2702/research2";
 //    private static final String PATH_MAIN_JAVA = "src/main/java/";
 //    private static final String STARTCOMMIT = "";
 
     //TEAM A
-    public static final String URL = "https://github.com/Saulero/GNI_Honours";
-    private static final String PATH_MAIN_JAVA = "gni-system/src/main/java/";
-    private static final String STARTCOMMIT = "1ea849755b6c315f6eec5a2d99c550f46f6ce1df";
+//    public static final String URL = "https://github.com/Saulero/GNI_Honours";
+//    private static final String PATH_MAIN_JAVA = "gni-system/src/main/java/";
+//    private static final String STARTCOMMIT = "1ea849755b6c315f6eec5a2d99c550f46f6ce1df";
 
     // TEAM B
 //    public static final String URL = "https://github.com/jeffreybakker/ING_Project";
@@ -98,7 +98,7 @@ public class Main {
 
     private Git git;
     private Repository repository;
-    private Map<String, SnapshotGraphBuilder> snapshotGraphBuilderMap = new HashMap<>();
+//    private Map<String, SnapshotGraphBuilder> snapshotGraphBuilderMap = new HashMap<>();
     private EvolutionModel model;
 
     private List<Integer> classesPerCommit = new ArrayList<>();
@@ -208,6 +208,7 @@ public class Main {
      * @throws IOException
      */
     public Tuple<RevCommit, RevCommit> buildVersionGraph() throws GitAPIException, IOException {
+        int commitsDone = 0;
         boolean start = STARTCOMMIT.equals("");
         Iterable<RevCommit> iterable = git.log().call();
         RevCommit first = null;
@@ -242,6 +243,10 @@ public class Main {
                 addSnapshotGraph(i, node);
                 last = i;
             }
+            commitsDone ++;
+            if(commitsDone%50==0){
+                System.out.println("Commits done: "+commitsDone);
+            }
         }
         // last is the first commit made, first the last commit made
         return new Tuple<>(last, first);
@@ -251,36 +256,41 @@ public class Main {
         int classesInCommit = 0;
         SnapshotGraphBuilder builder = new SnapshotGraphBuilder();
         RevTree tree = commit.getTree();
+
         TreeWalk treeWalk = new TreeWalk(repository);
         treeWalk.addTree(tree);
         treeWalk.setRecursive(true);
+        try {
 
-        if(PATHFILTER) {
-            treeWalk.setFilter(PathFilter.create(PATH_MAIN_JAVA));
-        }
+            if (PATHFILTER) {
+                treeWalk.setFilter(PathFilter.create(PATH_MAIN_JAVA));
+            }
 
 
-        treeWalk.setFilter(PathSuffixFilter.create(".java"));
-        while (treeWalk.next()) {
-            if (treeWalk.isSubtree()) {
-                treeWalk.enterSubtree();
-            } else {
-                ObjectId objectId = treeWalk.getObjectId(0);
-                ObjectLoader loader = repository.open(objectId);
-                String contents = new String(loader.getBytes());
-                try {
-                    Parser parser = new Parser(contents);
-                    builder.addParser(parser);
-                    classesInCommit ++;
-                } catch (NotAClassException e) {
+            treeWalk.setFilter(PathSuffixFilter.create(".java"));
+            while (treeWalk.next()) {
+                if (treeWalk.isSubtree()) {
+                    treeWalk.enterSubtree();
+                } else {
+                    ObjectId objectId = treeWalk.getObjectId(0);
+                    ObjectLoader loader = repository.open(objectId);
+                    String contents = new String(loader.getBytes());
+                    try {
+                        Parser parser = new Parser(contents);
+                        builder.addParser(parser);
+                        classesInCommit++;
+                    } catch (NotAClassException e) {
 
 //                    System.err.println("Java file found withouth class declaration");
+                    }
                 }
             }
+            model.getSnapshotGraphs().put(node, builder.generateGraph());
+//        snapshotGraphBuilderMap.put(commit.getId().getName(), builder);
+            classesPerCommit.add(classesInCommit);
+        }finally {
+            treeWalk.close();
         }
-        model.getSnapshotGraphs().put(node, builder.generateGraph());
-        snapshotGraphBuilderMap.put(commit.getId().getName(), builder);
-        classesPerCommit.add(classesInCommit);
     }
 
 
@@ -330,32 +340,37 @@ public class Main {
     public Map<String, Integer> getChangeMap(RevCommit commit, RevCommit parentCommit) throws IOException {
         HashMap<String, Integer> map = new HashMap<>();
 
-        ObjectReader reader = repository.newObjectReader();
-        CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
-        oldTreeIter.reset(reader, parentCommit.getTree().getId());
-        CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
-        newTreeIter.reset(reader, commit.getTree().getId());
 
-        DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
-        diffFormatter.setRepository(repository);
+            ObjectReader reader = repository.newObjectReader();
+            CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
+            oldTreeIter.reset(reader, parentCommit.getTree().getId());
+            CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
+            newTreeIter.reset(reader, commit.getTree().getId());
 
-        if(PATHFILTER) {
-            diffFormatter.setPathFilter(PathFilter.create(PATH_MAIN_JAVA));
-        }
+            DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
+            diffFormatter.setRepository(repository);
+        try {
+            if (PATHFILTER) {
+                diffFormatter.setPathFilter(PathFilter.create(PATH_MAIN_JAVA));
+            }
 
-        diffFormatter.setContext(0);
-        List<DiffEntry> entries = diffFormatter.scan(oldTreeIter, newTreeIter);
+            diffFormatter.setContext(0);
+            List<DiffEntry> entries = diffFormatter.scan(oldTreeIter, newTreeIter);
 
-        for(DiffEntry entry:entries){
-            if(entry.getChangeType().equals(DiffEntry.ChangeType.MODIFY)){
-                int linesChanged = getLinesChanged(diffFormatter, entry);
-                try {
-                    String className = Parser.getName(getContentsOfChangedFile(commit, entry.getNewPath()));
-                    map.put(className, linesChanged);
-                } catch (NotAClassException e) {
-                    System.err.println("Not a class found");
+            for (DiffEntry entry : entries) {
+                if (entry.getChangeType().equals(DiffEntry.ChangeType.MODIFY)) {
+                    int linesChanged = getLinesChanged(diffFormatter, entry);
+                    try {
+                        String className = Parser.getName(getContentsOfChangedFile(commit, entry.getNewPath()));
+                        map.put(className, linesChanged);
+                    } catch (NotAClassException e) {
+                        System.err.println("Not a class found");
+                    }
                 }
             }
+        }finally {
+            diffFormatter.close();
+            reader.close();
         }
         return map;
     }
@@ -529,6 +544,7 @@ public class Main {
             }
             ObjectId objectId = treeWalk.getObjectId(0);
             ObjectLoader loader = repository.open(objectId);
+            treeWalk.close();
             return new String(loader.getBytes());
         } catch (IOException e) {
             e.printStackTrace();
