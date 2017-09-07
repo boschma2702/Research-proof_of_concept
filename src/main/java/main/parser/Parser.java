@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 
 public class Parser {
 
-//    private final static Pattern COMMENTS = Pattern.compile("(\\/\\/.*)|(\\/\\*(?:.|[\\n\\r])*?\\*\\/)");
+    //    private final static Pattern COMMENTS = Pattern.compile("(\\/\\/.*)|(\\/\\*(?:.|[\\n\\r])*?\\*\\/)");
     private final static Pattern COMMENTS = Pattern.compile("(\\/\\/.*)|(\\/\\*[\\s\\S]*?\\*\\/)");
     private final static Pattern CLASS_DEFINITION = Pattern.compile("(class|enum|interface)\\s+[a-zA-Z][a-zA-Z0-9]*(\\s*<([a-zA-Z][a-zA-Z0-9]*)(,\\s*([a-zA-Z][a-zA-Z0-9]*))*>)?");
     private final static Pattern CLASS_GENERIC_DEFINITION = Pattern.compile("<([a-zA-Z][a-zA-Z0-9]*)(,\\s*([a-zA-Z][a-zA-Z0-9]*))*>");
@@ -38,18 +38,31 @@ public class Parser {
 
 
     private Set<String> dependencies;
-    /** dependencies either defined using path or can be derived from the imports **/
+    /**
+     * dependencies either defined using path or can be derived from the imports
+     **/
     private Set<String> knownDependencies;
-    /** dependencies inside same package or used libraries **/
+    /**
+     * dependencies inside same package or used libraries
+     **/
     private Set<String> unknownExternalDependencies;
-    /**  specified classname. Example: Example **/
+    /**
+     * specified classname. Example: Example
+     **/
     private String className;
-    /** location of the class **/
+    /**
+     * location of the class
+     **/
     private String packageName;
 
     private Set<String> genericTypes;
     private Set<String> imports;
     private Set<String> starImports;
+
+    /**
+     * contains the contents of the representing file
+     **/
+    private String contents;
 
 
     public static void main(String[] args) throws NotAClassException {
@@ -250,14 +263,14 @@ public class Parser {
     }
 
     public Parser(String file) throws NotAClassException {
-
-            dependencies = new HashSet<>();
-            knownDependencies = new HashSet<>();
+        contents = file;
+        dependencies = new HashSet<>();
+        knownDependencies = new HashSet<>();
 //        unknownDependencies = new HashSet<>();
-            genericTypes = new HashSet<>();
-            imports = new HashSet<>();
-            unknownExternalDependencies = new HashSet<>();
-            starImports = new HashSet<>();
+        genericTypes = new HashSet<>();
+        imports = new HashSet<>();
+        unknownExternalDependencies = new HashSet<>();
+        starImports = new HashSet<>();
         try {
             String noStringContents = removeStringContents(file);
             String noCommentsNoStringContents = removeComments(noStringContents);
@@ -272,7 +285,7 @@ public class Parser {
             }
             dependencies.removeAll(genericTypes);
             identifyKnownDependencies();
-        }catch (StackOverflowError e){
+        } catch (StackOverflowError e) {
             System.out.println(file);
             throw new IllegalStateException("Stack overflow");
         }
@@ -283,7 +296,7 @@ public class Parser {
         String className = "";
         String packageName = "";
         Matcher m = CLASS_DEFINITION.matcher(file);
-        if(m.find()) {
+        if (m.find()) {
             String result = m.group();
             Matcher classNameMatcher = IDENTIFIER_NODOTS.matcher(result);
 
@@ -292,12 +305,12 @@ public class Parser {
             className = classNameMatcher.group(0);
 
         }
-        if(className == null){
+        if (className == null) {
             throw new NotAClassException();
         }
 
         Matcher m2 = PACKAGE_DEFINITION.matcher(file);
-        if(m2.find()) {
+        if (m2.find()) {
             Matcher packageIdentifierMatcher = IDENTIFIER_MAYDOTS_MAYSTAR.matcher(m2.group());
 
             for (int i = 0; i < 2 && packageIdentifierMatcher.find(); i++) ;
@@ -307,27 +320,27 @@ public class Parser {
     }
 
     private void identifyKnownDependencies() {
-        for(String s : dependencies){
-            if(s.contains(".")){
+        for (String s : dependencies) {
+            if (s.contains(".")) {
                 knownDependencies.add(s);
             }
         }
-        for(String s : imports){
+        for (String s : imports) {
             String[] array = s.split("\\.");
-            if(dependencies.contains(array[array.length-1])){
+            if (dependencies.contains(array[array.length - 1])) {
                 knownDependencies.add(s);
-                dependencies.remove(array[array.length-1]);
+                dependencies.remove(array[array.length - 1]);
             }
         }
     }
 
 
-    public String removeComments(String file){
+    public String removeComments(String file) {
         Matcher m = COMMENTS.matcher(file);
         return m.replaceAll("");
     }
 
-    public String removeStringContents(String file){
+    public String removeStringContents(String file) {
         Matcher m = STRING_DECLARATION.matcher(file);
         return m.replaceAll("\"\"");
     }
@@ -335,20 +348,20 @@ public class Parser {
     //TODO implement nested classes and multiple classes in a single file
     public void extractClassInheritance(String file) throws NotAClassException {
         Matcher m = CLASS_DEFINITION.matcher(file);
-        if(m.find()){
+        if (m.find()) {
             String result = m.group();
             Matcher classNameMatcher = IDENTIFIER_NODOTS.matcher(result);
 
-            for(int i=0; i<2 && classNameMatcher.find(); i++);
+            for (int i = 0; i < 2 && classNameMatcher.find(); i++) ;
 
             className = classNameMatcher.group(0);
 
 
             Matcher genericMatcher = CLASS_GENERIC_DEFINITION.matcher(result);
-            if(genericMatcher.find()){
+            if (genericMatcher.find()) {
                 String generics = genericMatcher.group();
                 Matcher genericIdentifiers = IDENTIFIER_NODOTS.matcher(generics);
-                while (genericIdentifiers.find()){
+                while (genericIdentifiers.find()) {
                     genericTypes.add(genericIdentifiers.group());
                 }
             }
@@ -359,68 +372,68 @@ public class Parser {
             String noHookBrackets = matcher.replaceAll(" ");
 
             Matcher inheritanceMatcher = EXTENDS_OR_IMPLEMENTS_DEFINITION.matcher(noHookBrackets);
-            if(inheritanceMatcher.find()){
+            if (inheritanceMatcher.find()) {
                 String extendsOrImplements = inheritanceMatcher.group();
                 Matcher identifiers = IDENTIFIER_MAYDOTS.matcher(extendsOrImplements);
-                while(identifiers.find()){
+                while (identifiers.find()) {
                     String r = identifiers.group();
-                    if(!(r.equals("extends")||r.equals("implements"))){
+                    if (!(r.equals("extends") || r.equals("implements"))) {
                         dependencies.add(r);
                     }
                 }
             }
         }
-        if(className == null){
+        if (className == null) {
             throw new NotAClassException();
         }
     }
 
-    public void extractPackageDeclaration(String file){
+    public void extractPackageDeclaration(String file) {
         Matcher m = PACKAGE_DEFINITION.matcher(file);
-        if(m.find()){
+        if (m.find()) {
             Matcher packageIdentifierMatcher = IDENTIFIER_MAYDOTS_MAYSTAR.matcher(m.group());
 
-            for(int i=0; i<2 && packageIdentifierMatcher.find(); i++);
+            for (int i = 0; i < 2 && packageIdentifierMatcher.find(); i++) ;
             packageName = packageIdentifierMatcher.group();
-        }else{
+        } else {
 //            System.err.println("No package defined");
         }
     }
 
-    public void extractImports(String file){
+    public void extractImports(String file) {
         Matcher m = IMPORT_DEFINITION.matcher(file);
         List<String> entries = new ArrayList<>();
-        while(m.find()){
+        while (m.find()) {
             entries.add(m.group());
         }
 
-        for(String entry : entries){
+        for (String entry : entries) {
             Matcher matcher = IDENTIFIER_MAYDOTS_MAYSTAR.matcher(entry);
             matcher.find();
-            if(matcher.find()){
+            if (matcher.find()) {
                 String imp = matcher.group();
-                if(imp.contains("*")){
-                    starImports.add(imp.substring(0, imp.length()-1));
-                }else{
+                if (imp.contains("*")) {
+                    starImports.add(imp.substring(0, imp.length() - 1));
+                } else {
                     imports.add(imp);
                 }
             }
         }
     }
 
-    public void extractDeclarations(String file){
+    public void extractDeclarations(String file) {
         Matcher fieldsDecMatcher = FIELD_DECLARATION.matcher(file);
-        while (fieldsDecMatcher.find()){
+        while (fieldsDecMatcher.find()) {
             String declaration = fieldsDecMatcher.group();
             //all but last identifiers are dependencies
             Matcher identifiers = IDENTIFIER_MAYDOTS.matcher(declaration);
             String prev = "";
-            if(identifiers.find()){
+            if (identifiers.find()) {
                 prev = identifiers.group();
             }
-            while (identifiers.find()){
+            while (identifiers.find()) {
 //                System.err.println(prev);
-                if(!primitives.contains(prev)&&!prev.equals("return")&&!prev.equals("break")) {
+                if (!primitives.contains(prev) && !prev.equals("return") && !prev.equals("break")) {
                     dependencies.add(prev);
                 }
                 prev = identifiers.group();
@@ -428,8 +441,8 @@ public class Parser {
         }
     }
 
-    public String getName(){
-        return packageName+"."+className;
+    public String getName() {
+        return packageName + "." + className;
     }
 
     public Set<String> getDependencies() {
@@ -456,7 +469,7 @@ public class Parser {
         return imports;
     }
 
-    public void addUnknownExternalDependencies(String dependency){
+    public void addUnknownExternalDependencies(String dependency) {
         unknownExternalDependencies.add(dependency);
     }
 
@@ -466,6 +479,19 @@ public class Parser {
 
     public Set<String> getStarImports() {
         return starImports;
+    }
+
+    public String getContents() {
+        return contents;
+    }
+
+    public int getNumberOflines() {
+        Matcher m = Pattern.compile("\r\n|\r|\n").matcher(contents);
+        int lines = 1;
+        while (m.find()) {
+            lines++;
+        }
+        return lines;
     }
 
     @Override
