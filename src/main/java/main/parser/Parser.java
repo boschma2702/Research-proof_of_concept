@@ -486,7 +486,14 @@ public class Parser {
     }
 
     public int getNumberOflines() {
-        Matcher m = Pattern.compile("\r\n|\r|\n").matcher(contents);
+        String noComments = removeComments(contents);
+        try {
+            Parser p = new Parser(noComments);
+        } catch (NotAClassException e) {
+            System.out.println("COULD NOT PARSE CLASS");
+            System.out.println(noComments);
+        }
+        Matcher m = Pattern.compile("\r\n|\r|\n").matcher(noComments);
         int lines = 1;
         while (m.find()) {
             lines++;

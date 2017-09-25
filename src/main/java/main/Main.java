@@ -43,28 +43,38 @@ public class Main {
 
     private static final boolean PATHFILTER = false;
 
-    public static final String URL = "https://github.com/MyCollab/mycollab";
-    private static final String PATH_MAIN_JAVA = "";
+//    public static final String URL = "https://github.com/MyCollab/mycollab";
+//    public static final String PATH_MAIN_JAVA = "";
     private static final String STARTCOMMIT = "";
 
 //    public static final String URL = "https://github.com/boschma2702/research2";
-//    private static final String PATH_MAIN_JAVA = "src/main/java/";
-//    private static final String STARTCOMMIT = "";
+//    public static final String URL = "https://github.com/boschma2702/F4U-Bank";
+//    public static final String PATH_MAIN_JAVA = "src/main/java/";
+//    private static final String STARTCOMMIT = "64080b8b9399585d2df3ba691f5ca46778633856";
+
+//    public static final String URL = "https://github.com/JustinPraas/ING-UT";
+//    public static final String PATH_MAIN_JAVA = "ING Research/src/";
+//    private static final String STARTCOMMIT = "b4ecac8a4a8be15d1690741985c65b2e61054c19";
 
     //TEAM A
 //    public static final String URL = "https://github.com/Saulero/GNI_Honours";
-//    private static final String PATH_MAIN_JAVA = "gni-system/src/main/java/";
-//    private static final String STARTCOMMIT = "1ea849755b6c315f6eec5a2d99c550f46f6ce1df";
+//    public static final String PATH_MAIN_JAVA = "gni-system/src/main/java/";
+//    private static final String STARTCOMMIT = "591f92d4784290dcd14217889c5ecff732814cb4";
 
     // TEAM B
 //    public static final String URL = "https://github.com/jeffreybakker/ING_Project";
-//    private static final String PATH_MAIN_JAVA = "src/main/java/honours/ing/banq/";
-//    private static final String STARTCOMMIT = "e8eb48cab5a085116535ecad121cde59276a61fc";
+//    public static final String PATH_MAIN_JAVA = "src/main/java/honours/ing/banq/";
+//    private static final String STARTCOMMIT = "53b3f71dd1465a0dd2c61dae929e8fda26920c12";
+
+    public static final String URL = "https://github.com/Quitlox/ING_Project";
+    public static final String PATH_MAIN_JAVA = "src/main/java/honours/ing/banq/";
+//    private static final String STARTCOMMIT = "04a20da545b36280557d27644abe14d8b8fb030b";
 
     // TEAM C
 //    public static final String URL = "https://github.com/cjcr-andrei/ING-UT";
-//    private static final String PATH_MAIN_JAVA = "ING Research/src/";
-//    private static final String STARTCOMMIT = "919972e6b075c19a4575870a8de728bc21436e46";
+//    public static final String PATH_MAIN_JAVA = "ING Research/src/";
+//    private static final String STARTCOMMIT = "f09525b1cebf1bf2d3dd3aebcd260ba820ae36d7";
+
 
     // TEAM D
 //    public static final String URL = "https://github.com/FHast/INGhonours_GereonFritz";
@@ -73,8 +83,13 @@ public class Main {
 
     // TEAM E
 //    public static final String URL = "https://github.com/tristandb/springbank-spring";
-//    private static final String PATH_MAIN_JAVA = "src/main/java/nl/springbank/";
-//    private static final String STARTCOMMIT = "010bb1b279df47958ddc2ad9e7ceff0260f101fd";
+//    public static final String PATH_MAIN_JAVA = "src/main/java/nl/springbank/";
+//    private static final String STARTCOMMIT = "9aada4d57674fa68acc6908437f92ef7c570174a";
+
+//    public static final String URL = "https://github.com/meteoorkip/springbank-spring";
+//    public static final String PATH_MAIN_JAVA = "src/main/java/nl/springbank/";
+//    private static final String STARTCOMMIT = "9aada4d57674fa68acc6908437f92ef7c570174a";
+
 
     public static final String NAME = "research";
 
@@ -117,12 +132,22 @@ public class Main {
         model = new EvolutionModel();
         Tuple<RevCommit, RevCommit> result = buildVersionGraph();
         timer.time("Done building");
-        double sum = 0;
-        for(int i:classesPerCommit){
-            sum += i;
+//        double sum = 0;
+//        for(int i:classesPerCommit){
+//            sum += i;
+//        }
+//        double average = sum / classesPerCommit.size();
+//        System.out.println(average);
+
+        List<Tuple<String, List<Double>>> getClassChangeScore = ResearchQuestionsScripts.getClassesScoreChange(model, model.evolutionLookup(result.getT2().getId().getName()));
+        Tuple<String, List<Double>> max = getClassChangeScore.get(0);
+        for(int i=1;i<getClassChangeScore.size(); i++){
+            if(getClassChangeScore.get(i).getT2().get(0)>max.getT2().get(0)){
+                max = getClassChangeScore.get(i);
+            }
         }
-        double average = sum / classesPerCommit.size();
-        System.out.println(average);
+        System.out.println(String.format("Total amount of versions %s", model.getSnapshotGraphs().size()));
+        System.out.println(max);
 
         /*
 //        System.out.println(model.getEvolutionGraph());

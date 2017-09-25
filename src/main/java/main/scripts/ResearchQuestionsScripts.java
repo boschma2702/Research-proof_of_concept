@@ -4,10 +4,7 @@ import main.graph.*;
 import main.util.NoMergeNodes;
 import main.util.PathOfNode;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class ResearchQuestionsScripts {
 
@@ -69,8 +66,10 @@ public class ResearchQuestionsScripts {
 
     public static List<Tuple<String, List<Double>>> getClassesScoreChange(EvolutionModel model, BasicNode<String> finalVersion){
         List<Tuple<String, List<Double>>> list = new ArrayList<>();
+        System.out.println(String.format("Nodes to check: %s", model.getSnapshotGraphOfVersion(finalVersion).getNodes().size()));
+        int count = 0;
         for(BasicNode<String> snapshotNode : model.getSnapshotGraphOfVersion(finalVersion).getNodes()){
-            Set<Tuple<BasicNode<String>, Integer>> path = PathOfNode.getPathOfNode(snapshotNode);
+            List<Tuple<BasicNode<String>, Integer>> path = PathOfNode.getPathOfNode(snapshotNode, new HashSet<>());
             int amountChanged = 0;
             for(Tuple<BasicNode<String>, Integer> tuple : path){
                 if(tuple.getT2()>0){
@@ -88,6 +87,10 @@ public class ResearchQuestionsScripts {
             l.add((double) path.size());
             l.add((double) amountChanged);
             list.add(new Tuple<>(snapshotNode.getObject(), l));
+            count ++;
+            if(count%25==0){
+                System.out.println(String.format("%s nodes done ", count));
+            }
         }
         return list;
     }
